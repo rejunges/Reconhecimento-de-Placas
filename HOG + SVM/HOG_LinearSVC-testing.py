@@ -77,7 +77,7 @@ for file in glob.glob(args["testing"] + '*'): #Take all files (need to be video)
                 j = j + 1 #This line is necessary to write mask (optional)
 
                 # draw the circle of ROI
-                cimg = draw_circle (img, (x,y), radius)
+                #cimg = draw_circle (cimg, (x,y), radius)
 
                 #Points to draw/take rectangle in image 
                 x1, y1, x2, y2 = rectangle_coord((x,y), radius, padding, img.shape)
@@ -103,7 +103,8 @@ for file in glob.glob(args["testing"] + '*'): #Take all files (need to be video)
                     continue
                 
                 if (pred.title()).lower() == 'pos':
-                    cv2.rectangle(cimg, (x1,y1), (x2,y2), (255,0,0), 2)
+                    draw_circle (img, (x,y), radius)
+                    cv2.rectangle(img, (x1,y1), (x2,y2), (0,0,255), 2)
                     #cv2.imwrite('PosResult/' + str(j) + ".jpg", img_resize) #Write Positive samples
                 #To write/save Negative samples uncomment the following lines
                 #else:
