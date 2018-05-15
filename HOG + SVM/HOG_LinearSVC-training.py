@@ -1,5 +1,5 @@
 '''
-This file is responsable for take a path where exists the Training images
+This file is responsable for taking a path where exists the Training images
 and create and save a model using HOG and Linear SVC (SVM). 
 The default name of model file is HOG_LinearSVC.dat but can be set opcionally in argument. 
 
