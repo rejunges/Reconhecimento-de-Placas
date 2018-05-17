@@ -25,7 +25,7 @@ from helpers import mask_hsv_red, circle_values, draw_circle, rectangle_coord
 ap = argparse.ArgumentParser()
 ap.add_argument('-t', "--testing", required=True, help="path to the testing videos")
 ap.add_argument('-mf', "--modelFile", required=False, default='HOG_LinearSVC.dat', help='name of model file')
-ap.add_argument('-d', "--dimension", required=False, default=(48,48), help="Dimension of training images (Width, Heigth)" )
+ap.add_argument('-d', "--dimension", required=False, default=(48,48), help="Dimension of training images (Width, Height)" )
 args = vars(ap.parse_args())
 
 #Loading the model
@@ -39,6 +39,7 @@ list_pickle.close()
 print("Testing a Model")
 padding = 3
 j = 1
+width, height = args["dimension"]
 
 for file in glob.glob(args["testing"] + '*'): #Take all files (need to be video)
     print("The current video is {}".format(file.split('/')[-1]))
@@ -85,9 +86,9 @@ for file in glob.glob(args["testing"] + '*'): #Take all files (need to be video)
                 #cut image
                 rect = img[y1:y2, x1:x2]  
 
-                #For each ROI (rect) resize to 48x48 and verify if fits in model
+                #For each ROI (rect) resize to dimension and verify if fits in model
                 try:
-                    img_resize = resize(rect, 48, 48).copy()
+                    img_resize = resize(rect, width, height).copy()
                 except:
                     continue
                 #Put in grayscale
@@ -110,7 +111,7 @@ for file in glob.glob(args["testing"] + '*'): #Take all files (need to be video)
                 #else:
                 #    cv2.imwrite('NegResult/' + str(j) + ".jpg", img_resize) #Write Negative samples
 
-                #cv2.imwrite('Mask/mask' + str(j) +'.jpg', img_gray)        
+                #cv2.imwrite('Mask/mask' + str(j) +'.jpg', mask)        
         video_out.write(img)
 
     cap.release() #Release the capture
