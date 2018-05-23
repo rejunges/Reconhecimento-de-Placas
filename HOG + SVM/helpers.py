@@ -73,3 +73,17 @@ def rectangle_coord (center, radius, padding, shape):
         y2 = height
     
     return x1, y1, x2, y2
+
+'''This function compute the area from a rectangle '''
+def area (rect):
+    width, heigth = rect.shape[1], rect.shape[0]
+    
+    return width * heigth 
+
+'''This function compute the Jaccard similarity coefficient'''
+def jaccardIndex(img_rect1, img_rect2):
+    ri = img_rect1 & img_rect2
+    ru = img_rect1 | img_rect2
+
+    jaccardIndex = area(ri) / area(ru)
+    return jaccardIndex
