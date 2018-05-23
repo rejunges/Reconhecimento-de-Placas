@@ -19,7 +19,7 @@ from imutils import resize
 from skimage.feature import hog
 from imutils import paths, resize
 from sklearn.svm import LinearSVC
-from helpers import mask_hsv_red, circle_values, draw_circle, rectangle_coord
+from helpers import mask_hsv_red, circle_values, draw_circle, rectangle_coord, jaccardIndex
 
 #Argparse
 ap = argparse.ArgumentParser()
@@ -41,17 +41,23 @@ padding = 3
 j = 1
 width, height = args["dimension"]
 
-for file in glob.glob(args["testing"] + '*'): #Take all files (need to be video)
+for file in glob.glob(args["testing"] + 'clip_i5s_0094*'): #Take all files (need to be video)
     print("The current video is {}".format(file.split('/')[-1]))
     cap = cv2.VideoCapture(file) #Capture the video
     
     #To save a video with frames and rectangles in ROIs
     fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G') #codec
     video_out = cv2.VideoWriter(file.split('/')[-1].split('.')[0] + '.avi', fourcc, 20.0, (1920, 1080))
+    frame_number = -1
+
+    #Open ground truth file 
+    gt_file = open("clip_i5s_0094_GT", "r")
+    line = gt_file.readline()
 
     while(cap.isOpened()):
         ret, frame = cap.read() #Capture frame-by-frame
-        
+        frame_number = frame_number + 1
+        flag_gt = False
         #If the video has ended
         if not ret:
             break
@@ -60,8 +66,31 @@ for file in glob.glob(args["testing"] + '*'): #Take all files (need to be video)
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         #mask with the red color of the image
         mask = mask_hsv_red(hsv)
-    
+
         ##########################################
+        #Ground Truth
+        line = line.strip()
+        frame_gt = line.split(",")[0]  
+        if int(frame_gt) == frame_number:
+            frame_gt, x, y, width_gt, heigth_gt = line.split(",")
+            x, y, width_gt, heigth_gt = int(float(x)), int(float(y)), int(float(width_gt)), int(float(heigth_gt))
+            #x and y are the top left coord
+            x2 = x + width_gt
+            y2 = y + heigth_gt
+            #Take a rect of frame
+            rect_gt = img[y:y2, x:x2]
+            
+            rect_gt = resize(rect_gt, width, height)
+            if rect_gt.shape == (height, width, 3):
+                flag_gt = True
+            else:
+                flag_gt = False
+            
+            #Read next gt
+            line = gt_file.readline()
+
+        ##########################################
+        
         # HOUGH CIRCLE
         cimg = img.copy()
         #Blur mask to avoid false positives
@@ -84,7 +113,7 @@ for file in glob.glob(args["testing"] + '*'): #Take all files (need to be video)
                 x1, y1, x2, y2 = rectangle_coord((x,y), radius, padding, img.shape)
                
                 #cut image
-                rect = img[y1:y2, x1:x2]  
+                rect = img[y1:y2, x1:x2].copy()  
 
                 #For each ROI (rect) resize to dimension and verify if fits in model
                 try:
@@ -103,9 +132,14 @@ for file in glob.glob(args["testing"] + '*'): #Take all files (need to be video)
                 except:
                     continue
                 
+                if flag_gt and img_resize.shape == (height, width, 3):
+                    
+                    print("JACCARD CALL")
+                    print(jaccardIndex(rect_gt, img_resize))
                 if (pred.title()).lower() == 'pos':
                     draw_circle (img, (x,y), radius)
                     cv2.rectangle(img, (x1,y1), (x2,y2), (0,0,255), 2)
+                        
                     #cv2.imwrite('PosResult/' + str(j) + ".jpg", img_resize) #Write Positive samples
                 #To write/save Negative samples uncomment the following lines
                 #else:
@@ -114,5 +148,6 @@ for file in glob.glob(args["testing"] + '*'): #Take all files (need to be video)
                 #cv2.imwrite('Mask/mask' + str(j) +'.jpg', mask)        
         video_out.write(img)
 
+    gt_file.close() #close ground truth file
     cap.release() #Release the capture
     video_out.release() #Release the video writer
