@@ -12,7 +12,6 @@ for file in glob.glob("*GT.txt"):
             #Read line by line until the end of file
             while(line):
                 frame, x, y, width, heigth = line.split(",")
-                print(line.split(",")[0])
                 if float(width) >= 48 and float(heigth) >= 48:
                     fw.write(line)
                 line = arq.readline()
