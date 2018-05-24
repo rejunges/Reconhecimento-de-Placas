@@ -26,9 +26,6 @@ def mask_hsv_red(hsv_img):
     #Put together the two masks
     mask = cv2.bitwise_or(mask1, mask2)
 
-    #Remove a little noise
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)    
     return mask
 
 '''This function returns the coordinate x,y of center of circle and the radius'''
@@ -50,8 +47,9 @@ def draw_circle (img, center, radius):
 '''This function receives the center and radius of a circle, the padding and the shape of image. 
 Return coordinates of two points to draw a rectangle''' 
 def rectangle_coord (center, radius, padding, shape):
-    x, y = center
-    prop_padding = int(radius/padding) #Proporcional padding
+    x, y = np.int64(center)
+    radius = np.int64(radius)
+    prop_padding = np.int64(radius/padding) #Proporcional padding
     
     #Top left coordinates
     x1 = x - radius - prop_padding
@@ -74,16 +72,3 @@ def rectangle_coord (center, radius, padding, shape):
     
     return x1, y1, x2, y2
 
-'''This function compute the area from a rectangle '''
-def area (rect):
-    width, heigth = rect.shape[1], rect.shape[0]
-    
-    return width * heigth 
-
-'''This function compute the Jaccard similarity coefficient'''
-def jaccardIndex(img_rect1, img_rect2):
-    ri = img_rect1 & img_rect2
-    ru = img_rect1 | img_rect2
-
-    jaccardIndex = area(ri) / area(ru)
-    return jaccardIndex
