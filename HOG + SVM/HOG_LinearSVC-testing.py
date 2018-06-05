@@ -9,6 +9,7 @@ Command line example: python3 HOG_LinearSVC-testing.py -t path_Testing -mf name_
 
 #python HOG_LinearSVC-testing.py -t ../../vts/
 
+
 import numpy as np 
 import pickle
 import cv2
@@ -16,10 +17,10 @@ import argparse
 import glob
 import time
 from skimage.feature import hog
-from sklearn.metrics import jaccard_similarity_score
+from sklearn.metrics import jaccard_similarity_score, confusion_matrix
 from sklearn.svm import LinearSVC
 from imutils import paths
-from helpers import mask_hsv_red, circle_values, draw_circle, rectangle_coord, image_Jaccard
+from helpers import mask_hsv_red, circle_values, draw_circle, rectangle_coord, intersection_over_union
 
 #Argparse
 ap = argparse.ArgumentParser()
@@ -129,28 +130,32 @@ for file in glob.glob(args["testing"] + 'clip_i5s_0094*'): #Take all files (need
 
                 if (pred.title()).lower() == 'pos':
                     if flag_GT:
-                        image_GT, image_Pred = image_Jaccard(x1_GT, y1_GT, x2_GT, y2_GT, x1_PRED, y1_PRED, x2_PRED, y2_PRED)
-                        JI = jaccard_similarity_score(image_GT.flatten(), image_Pred.flatten())
-                        '''
+                        #image_GT, image_Pred = image_Jaccard(x1_GT, y1_GT, x2_GT, y2_GT, x1_PRED, y1_PRED, x2_PRED, y2_PRED)
+                        #JI = jaccard_similarity_score(image_GT.flatten(), image_Pred.flatten())
+                        IOU = intersection_over_union((x1_GT, y1_GT), (x2_GT, y2_GT), (x1_PRED, y1_PRED), (x2_PRED, y2_PRED) )
+                        
                         x2_PRED = x1_PRED + width_GT
                         y2_PRED = y1_PRED + heigth_GT
-
+                        '''
                         image_GT = img[y1_GT:y2_GT, x1_GT:x2_GT].copy()
                         image_Pred = img[y1_PRED:y2_PRED, x1_PRED:x2_PRED].copy()
+                        
                         
                         FINAL = np.hstack((image_GT, image_Pred))
                         cv2.imwrite('Video_rect/' + str(j) + "image_GT.jpg", image_GT)
                         cv2.imwrite('Video_rect/' + str(j) + "image_PRED.jpg", image_Pred)
                         cv2.imwrite('Video_rect/' + str(j) + "Final.jpg", FINAL)
                         '''
-                        print(jaccard_similarity_score(image_GT.flatten(), image_Pred.flatten()), JI)
+                        iou =  intersection_over_union((x1_GT, y1_GT), (x2_GT, y2_GT), (x1_PRED, y1_PRED), (x2_PRED, y2_PRED))
+                        print(IOU, iou)
                     draw_circle (img, (x,y), radius)
                     cv2.rectangle(img, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED), (0,0,255), 2)
-                        
-                    #cv2.imwrite('Video_rect/PosResult/' + str(j) + ".jpg", img_resize) #Write Positive samples
+                    #cv2.putText(img, "IoU: {:.2f}".format(iou*100), (x1_PRED, y1_PRED), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                    
+                    #cv2.imwrite('Video_rect/Pos_SP/' + str(j) + file_name + ".jpg", img_resize) #Write Positive samples
                 #To write/save Negative samples uncomment the following lines
                 #else:
-                 #   cv2.imwrite('Video_rect/NegResult/' + str(j) + ".jpg", img_resize) #Write Negative samples
+                    #cv2.imwrite('Video_rect/Neg_SP/' + str(j) + file_name + ".jpg", img_resize) #Write Negative samples
 
                 #cv2.imwrite('Mask/mask' + str(j) +'.jpg', mask)        
         video_out.write(img)
