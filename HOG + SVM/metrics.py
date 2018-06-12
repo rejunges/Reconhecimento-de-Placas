@@ -1,4 +1,8 @@
-#python metrics.py
+'''
+This file is responsable for create a confusion matrix and a classification report based on ground truth and predictions files.
+Command line example: python metrics.py
+'''
+
 import glob
 import argparse
 from helpers import intersection_over_union
@@ -19,8 +23,8 @@ def plot_confusion_matrix(cm, classes,
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
         print("Normalized confusion matrix")
     else:
-        print('Confusion matrix, without normalization')
-
+        #print('Confusion matrix, without normalization')
+        print("Matriz de confusão (sem normalização)")
     print(cm)
 
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
@@ -38,13 +42,25 @@ def plot_confusion_matrix(cm, classes,
                  color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
+    plt.ylabel("Ground Truth label")
+    plt.xlabel("Predictions label")
+    #plt.ylabel('True label')
+    #plt.xlabel('Predicted label')
 
+#This function update vectors(ground truth and predictions) when ground_truth is False (<frame or > frame)
+def update_vectors(ground_truth, predictions, frame, frame_PRED, line_PRED, file_PRED):
+    ground_truth.append(isFalse)
+    if (frame == frame_PRED):
+        predictions.append(pred)
+        line_PRED = file_PRED.readline()
+    else:
+        predictions.append(isFalse)
+    
+    return line_PRED    
 
 
 #Put in gt_files the name of gt files
-gt_files = glob.glob("*99*_GT")
+gt_files = glob.glob("**_GT")
 isTrue = "Proibido ultrapassar"
 isFalse = "Outros"
 
@@ -63,8 +79,6 @@ for filename_GT in gt_files:
     total_frames = file_PRED.readline() #first line is the total number of frames
     total_frames = int(total_frames) 
     line_PRED = file_PRED.readline()
-
-    print(total_frames)
 
     for frame in range(total_frames):
         if (line_PRED):
@@ -106,45 +120,24 @@ for filename_GT in gt_files:
 
                 #read the next line 
                 line_PRED = file_PRED.readline()    
-            elif(frame > frame_PRED):
-                #Pred file ends
-                predictions.append(isFalse)
-            elif (frame < frame_PRED):
+            else:
                 predictions.append(isFalse)
             
         elif (frame < frame_GT):
-            ground_truth.append(isFalse)
-            if (frame == frame_PRED):
-                predictions.append(pred)
-                line_PRED = file_PRED.readline()
-            elif (frame < frame_PRED):
-                predictions.append(isFalse)
-            elif (frame > frame_PRED):
-                #Pred file ends
-                predictions.append(isFalse)
- 
+            line_PRED = update_vectors(ground_truth, predictions, frame, frame_PRED, line_PRED, file_PRED)
+            
         elif (frame > frame_GT):
             #ground truth file ends
-            ground_truth.append(isFalse)
-            if (frame == frame_PRED):
-                predictions.append(pred)
-                line_PRED = file_PRED.readline()    
-            elif (frame < frame_PRED):
-                predictions.append(isFalse)
-            elif (frame > frame_PRED):
-                #Pred file ends
-                predictions.append(isFalse)
+            line_PRED = update_vectors(ground_truth, predictions, frame, frame_PRED, line_PRED, file_PRED)
         
     #Close files to open others
     file_GT.close()
     file_PRED.close()
 
     class_names = [isTrue, isFalse]
-    #ground_truth = np.invert(ground_truth)
-    #predictions = np.invert (predictions)
+
 
     print("Confusion Matrix for {}".format(filename_GT))
-    print(confusion_matrix(ground_truth, predictions))
     # Compute confusion matrix
     cnf_matrix = confusion_matrix(ground_truth, predictions, labels = class_names)
     np.set_printoptions(precision=2)
@@ -156,13 +149,14 @@ for filename_GT in gt_files:
 
     # Plot normalized confusion matrix
     #plt.figure()
-    #plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-    #                    title='Normalized confusion matrix')
+    #plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True, title='Normalized confusion matrix')
 
-    plt.show()
+    #plt.show()
+
+    plt.savefig(clip + '.png', bbox_inches='tight')
+    '''
     print("Classification Report for {}".format(filename_GT))
 
-    target_names = ['Positive', 'Negative']
-    #print(classification_report(ground_truth, predictions, target_names=target_names))
-    #print(ground_truth, len(predictions))
-    
+    print(classification_report(ground_truth, predictions, target_names=class_names))
+    print(ground_truth, len(predictions))
+    '''
