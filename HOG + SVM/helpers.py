@@ -73,38 +73,6 @@ def rectangle_coord (center, radius, padding, shape):
     
     return x1, y1, x2, y2
 
-'''This function calculate the minimum point (x1,y1) and the maximum point (x2,y2) of the combination of
-the ground truth points and predition image points. Return the minimum point and the width and height of a new image'''
-'''
-def image_Jaccard_dimension (x1_GT, y1_GT, x2_GT, y2_GT, x1_PRED, y1_PRED, x2_PRED, y2_PRED):
-    x1_img = x1_GT if (x1_GT < x1_PRED) else x1_PRED
-    y1_img = y1_GT if (y1_GT < y1_PRED) else y1_PRED
-    x2_img = x2_GT if (x2_GT > x2_PRED) else x2_PRED
-    y2_img = y2_GT if (y2_GT > x2_PRED) else y2_PRED
-    
-    width_img = x2_img - x1_img
-    height_img = y2_img - y1_img
-
-    return x1_img, y1_img, width_img, height_img
-'''
-'''This function return a two images(the ground truth and the predition image) based on the image_Jaccard_dimension function'''
-'''
-def image_Jaccard (x1_GT, y1_GT, x2_GT, y2_GT, x1_PRED, y1_PRED, x2_PRED, y2_PRED):
-    x1_img, y1_img, width_img, height_img = image_Jaccard_dimension(x1_GT, y1_GT, x2_GT, y2_GT, x1_PRED, y1_PRED, x2_PRED, y2_PRED)
-    
-    image_GT = np.zeros((height_img , width_img, 3), dtype = np.uint8)
-    image_GT[:,:,1] = 255
-    image_GT = cv2.cvtColor(image_GT, cv2.COLOR_BGR2HSV).copy()
-    cv2.rectangle(image_GT, (x1_GT - x1_img, y1_GT - y1_img), (x2_GT - x1_img, y2_GT - y1_img), (150, 100, 100), cv2.FILLED)
-    
-    image_Pred = np.zeros((height_img , width_img, 3), dtype = np.uint8)
-    image_Pred[:,:,0] = 255
-    image_Pred[:,:,2] = 255
-    image_Pred = cv2.cvtColor(image_Pred, cv2.COLOR_BGR2HSV).copy()
-    cv2.rectangle(image_Pred, (x1_PRED - x1_img, y1_PRED - y1_img), (x2_PRED - x1_img, y2_PRED - y1_img), (150, 100, 100), cv2.FILLED)
-    
-    return image_GT, image_Pred
-'''
 
 '''Receives two points from GT image and PRED image and calculate de iou'''
 def intersection_over_union(point1_GT, point2_GT, point1_PRED, point2_PRED):
@@ -128,3 +96,14 @@ def intersection_over_union(point1_GT, point2_GT, point1_PRED, point2_PRED):
 	iou = interArea / float(boxAArea + boxBArea - interArea)
  
 	return iou
+
+'''Receives a RGB image and return a RGB image with Contrast Limited Adaptive Histogram Equalization (CLAHE) '''
+def clahe (img):
+    lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+    lab_planes = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=3.0,tileGridSize=(6,6))
+    lab_planes[0] = clahe.apply(lab_planes[0])
+    lab = cv2.merge(lab_planes)
+    bgr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+    
+    return bgr
