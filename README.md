@@ -1,2 +1,8 @@
-# Reconhecimento-de-Placas-
-Repositório criado para o desenvolvimento do meu trabalho de TCC. A ideia é utilizar diferentes técnicas para que ocorra o reconhecimento de placas de trânsito em vídeos.
+# Traffic Sign Detection and Recognition in Video
+
+### Sign Traffic Detection
+All circular traffic signs with red border are detected.
+
+### Sign Traffic Recognition
+    * No Overtaking
+    * Velocity Signs

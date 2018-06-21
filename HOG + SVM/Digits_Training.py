@@ -14,7 +14,7 @@ import cv2
 import argparse
 from skimage.feature import hog
 from imutils import paths
-from sklearn import svm
+from sklearn import svm, neighbors
 from helpers import print_hog
 
 ap = argparse.ArgumentParser()
@@ -42,10 +42,12 @@ for file in paths.list_images(args["training"]):
     labels.append(file.split('/')[-2])
     data.append(H)
 
+
 #Training a model
-print("Training a Model with LinearSVC...")
+print("Training a Model with SVC...")
 #Create a classifier: a support vector classifier
-model = svm.SVC(gamma=0.001)
+#model = svm.SVC(C= 2.7, gamma=5.393)
+model = svm.SVC()
 model.fit(data,labels)
 
 #Saving the model
