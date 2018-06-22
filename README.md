@@ -1,8 +1,8 @@
-# Traffic Sign Detection and Recognition in Video
+# Traffic Sign Identification and Recognization in Video
 
-### Sign Traffic Detection
-All circular traffic signs with red border are detected.
+### Traffic Sign Identification
+    Identifies all the circular traffic sign with red border.
 
-### Sign Traffic Recognition
-    * No Overtaking
-    * Velocity Signs
+### Traffic Sign Recognization
+    * No overtaking
+    * Speed Limit

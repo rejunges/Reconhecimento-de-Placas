@@ -7,6 +7,8 @@ Command line example: python3 HOG_LinearSVC-training.py -t path_Training -mf nam
 '''
 
 #python HOG_LinearSVC-training.py -t ../../proibido_ultrapassar/neg_pos_48x48/ 
+#python HOG_LinearSVC-training.py -t ../../60km_h/neg_pos_48x48/ -mf training_60km.dat
+#python HOG_LinearSVC-training.py -t ../../80km_h/neg_pos_48x48/ -mf training_80km.dat
 
 import numpy as np 
 import pickle

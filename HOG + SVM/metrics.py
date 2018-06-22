@@ -1,6 +1,6 @@
 '''
 This file is responsable for create a confusion matrix and a classification report based on ground truth and predictions files.
-Command line example: python metrics.py
+Command line example: python3 metrics.py
 '''
 
 import glob
@@ -60,7 +60,7 @@ def update_vectors(ground_truth, predictions, frame, frame_PRED, line_PRED, file
 
 
 #Put in gt_files the name of gt files
-gt_files = glob.glob("**_GT")
+gt_files = glob.glob("*_GT")
 isTrue = "Proibido ultrapassar"
 isFalse = "Outros"
 
@@ -75,7 +75,7 @@ for filename_GT in gt_files:
     line_GT = file_GT.readline()
     
     #Open PRED FILE
-    file_PRED = open("PRED_SP/" + clip + "_PRED", "r")
+    file_PRED = open( clip + "_PRED", "r")
     total_frames = file_PRED.readline() #first line is the total number of frames
     total_frames = int(total_frames) 
     line_PRED = file_PRED.readline()
