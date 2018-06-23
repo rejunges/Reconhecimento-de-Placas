@@ -1,9 +1,11 @@
-'''
-This file is responsable for creating negative samples to use in supervised learning.
+"""
+File name: create_neg_samples.py
+Description: This file creates negative samples to use in supervised learning.
 It is necessary to inform a path to the video to cut the images from frames
-
 Command line example: python3 create_neg_samples.py -v video 
-'''
+Author: Renata Zottis Junges
+Python Version: 3.6
+"""
 
 #python create_neg_samples.py -v ../../vts/clip_i5s_0094.MOV
  
