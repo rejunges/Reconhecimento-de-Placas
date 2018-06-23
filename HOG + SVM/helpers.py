@@ -1,3 +1,10 @@
+"""
+File name: helpers.py
+Description: This file has auxiliar functions to train.py, test.py and metrics.py
+Author: Renata Zottis Junges
+Python Version: 3.6
+"""
+
 import numpy as np
 import cv2
 from skimage import exposure
@@ -182,5 +189,5 @@ def intersection_over_union(point1_GT, point2_GT, point1_PRED, point2_PRED):
 	# area and dividing it by the sum of prediction + ground-truth
 	# areas - the interesection area
 	iou = interArea / float(boxAArea + boxBArea - interArea)
-	
+
 	return iou
