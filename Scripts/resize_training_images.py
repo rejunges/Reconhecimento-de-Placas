@@ -1,9 +1,12 @@
-'''
-This file is responsible for taking a path where exists the images for training 
-and resize to a new dimension (width, height) if the image was above 35x35
-
+"""
+File name: resize_training_images.py
+Description: This file takes a path where exists the images for training 
+and resizes to a new dimension (width, height) if the image was above 35x35
 Command line example: python3 resize_training_images.py -p path_Images -d (width, height) 
-'''
+Author: Renata Zottis Junges
+Python Version: 3.6
+"""
+
 #python resize_training_images.py -p ../../60km_h/neg_pos_48x48/ 
 #python resize_training_images.py -p ../../80km_h/neg_pos_48x48/ 
 
