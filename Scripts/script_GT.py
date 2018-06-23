@@ -1,4 +1,10 @@
-'''This file is responsable for rewrite the GT file, only mantaining the pictures with dimensions 48x48 or superior'''
+"""
+File name: script_GT.py
+Description: This file rewrites the GT file, only mantaining the pictures with dimensions 48x48 or superior
+Author: Renata Zottis Junges
+Python Version: 3.6
+"""
+
 import glob
 
 for file in glob.glob("*GT.txt"): #Here put the name of ground truth file 
