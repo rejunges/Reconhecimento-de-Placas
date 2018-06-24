@@ -7,7 +7,7 @@ The default name of model file is HOG_LinearSVC.dat but can be set opcionally in
 Command line example: python3 HOG_LinearSVC-testing.py -t path_Testing -mf name_model 
 '''
 
-#python testing_digits.py -t ../../vts/60km/ -mf trafficSign.dat
+#python testing_digits.py -t ../../vts/60km/ -mf ../Models/trafficSigns.dat
 
 import numpy as np 
 import pickle
@@ -36,7 +36,7 @@ list_pickle = open(modelFile, 'rb')
 model = pickle.load(list_pickle)
 list_pickle.close()
 
-list_pickle = open("digits.dat", "rb")
+list_pickle = open("../Models/digits.dat", "rb")
 digits_model = pickle.load(list_pickle)
 list_pickle.close()
 
@@ -93,7 +93,7 @@ for file in glob.glob(args["testing"] + '*69*'): #Take all files (need to be vid
 
                 #Points to draw/take rectangle in image 
                 
-                x1_PRED, y1_PRED, x2_PRED, y2_PRED = rectangle_coord((x,y), radius, padding, img.shape)
+                x1_PRED, y1_PRED, x2_PRED, y2_PRED = rectangle_coord((x,y), radius,  img.shape)
                 
                 #cut image
                 rect = img[y1_PRED:y2_PRED, x1_PRED:x2_PRED].copy()  
@@ -164,17 +164,17 @@ for file in glob.glob(args["testing"] + '*69*'): #Take all files (need to be vid
                         
                         #HOG method
                         (H, hogImage) = hog(roi, orientations=9, pixels_per_cell=(8,8), cells_per_block=(2,2), transform_sqrt=True, visualise=True, block_norm='L2-Hys')
-                        
+                        #print(H.shape)
                         #predict the image based on model 
                         digits_pred = digits_model.predict(H.reshape(1,-1))[0]
                         if (digits_pred.title()).lower() == '0':
-                            cv2.imwrite('PLACA_MASK(DIA_2)/0/' + str(frame_number) + "_" + str(j) + file_name + ".jpg", roi) #Write Positive samples
+                            cv2.imwrite('Teste/0/' + str(frame_number) + "_" + str(j) + file_name + ".jpg", roi) #Write Positive samples
                         elif (digits_pred.title()).lower() == '6':
-                            cv2.imwrite('PLACA_MASK(DIA_2)/6/' + str(frame_number) + "_" + str(j) + file_name + ".jpg", roi) #Write Positive samples
+                            cv2.imwrite('Teste/6/' + str(frame_number) + "_" + str(j) + file_name + ".jpg", roi) #Write Positive samples
                         elif (digits_pred.title()).lower() == '8':
-                            cv2.imwrite('PLACA_MASK(DIA_2)/8/' + str(frame_number) + "_" + str(j) + file_name + ".jpg", roi) #Write Positive samples
+                            cv2.imwrite('Teste/8/' + str(frame_number) + "_" + str(j) + file_name + ".jpg", roi) #Write Positive samples
                         else:
-                            cv2.imwrite('PLACA_MASK(DIA_2)/outros/' + digits_pred.title() +  "_" + str(frame_number) + "_" + str(j) + file_name + ".jpg", roi) #Write Positive samples
+                            cv2.imwrite('Teste/outros/' + digits_pred.title() +  "_" + str(frame_number) + "_" + str(j) + file_name + ".jpg", roi) #Write Positive samples
 
                         digits.append(digits_pred.title())
                 #To write/save Negative samples uncomment the following lines
