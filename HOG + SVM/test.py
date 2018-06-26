@@ -60,7 +60,8 @@ def preprocessing_frame(frame):
 		frame (numpy.ndarray): frame from the video
 
 	Returns:
-		tuple: returns a tuple with 2 elements, the binary mask and the image after clahe  		
+		tuple: returns a tuple with 2 elements, the binary mask and the image after clahe  
+
 	"""
 
 	img = helpers.clahe(frame)	
@@ -70,21 +71,57 @@ def preprocessing_frame(frame):
 
 	return mask, img
 
-def predict_traffic_signal(circles, img, model, dimensions):
-	"""For it ROI found, verifies if it is or is not traffic sign
+
+def predict_no_overtaking_signal(final_frame, rect, rect_resize, model, dimensions):
+	'''Verify if rect is no overtaking signal. If so, putText on frame
+
+	Args:
+		final_frame (numpy.ndarray): image to draw the put
+		rect (numpy.ndarray): image rectangle (ROI) to verify if is no overtaking signal
+		model: no overtaking model from train.py
+		dimensions (tuple): width and heigh to resize the rect (ROI) image
+	
+	Returns:
+		list: returns a list with the not no overtaking traffic signs 
+	
+	'''
+	
+	not_no_overtaking = []
+
+	#HOG method
+	H = hog(rect_resize, orientations=9, pixels_per_cell=(8,8), cells_per_block=(2,2), transform_sqrt=True, visualise=False, block_norm='L2-Hys')
+	
+	#predict the image based on model 
+	pred = model.predict(H.reshape(1,-1))[0]
+	
+	if (pred.title()).lower() == 'pos':
+		#draw in video
+		cv2.putText(final_frame,'Recognized: No overtaking ',(10,250), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+	else:
+		not_no_overtaking.append(rect)
+		
+
+	return not_no_overtaking
+
+
+def predict_traffic_signal(circles, img, model, dimensions, final_frame):
+	"""For each ROI found, verifies if it is or is not traffic sign
 
 	Args:
 		circles (numpy.ndarray): circles from Hough Circle method
-		img (numpy.ndarray): image to cut the ROI and image to draw the traffic signals
+		img (numpy.ndarray): image to cut the ROI 
+		final_frame (numpy.ndarray): image to draw rectangles around the traffic signals
 		model: traffic sinal model from train.py 
 		dimensions (tuple): width and heigh to resize the ROI image
 
 	Returns:
-		list: returns a list with the traffic sign images 
+		tuple: returns 2 elements. The first one is a list of rectangles (ROIS) which are traffic sign
+		The second one is a list of resized image of ROIs
+
 	"""
 
-
 	rects = []
+	gray = []
 	for i in circles[0,:]:
 		x, y, radius = helpers.circle_values(i) 
 
@@ -109,13 +146,18 @@ def predict_traffic_signal(circles, img, model, dimensions):
 		pred = model.predict(H.reshape(1,-1))[0]
 		if (pred.title().lower()) == "pos":
 			#It is a traffic signal
-			helpers.draw_circle (img, (x,y), radius)
-			cv2.rectangle(img, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED), (0,0,255), 2)
+			helpers.draw_circle (final_frame, (x,y), radius)
+			cv2.rectangle(final_frame, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED), (0,0,255), 2)
+			cv2.putText(final_frame,'Detected Traffic Signal ',(10,150), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 			
 			#It is a traffic signal
 			rects.append(rect)
+			gray.append(img_gray)
+			
 	
-	return rects
+	return rects, gray
+
+
 
 #Argparse
 ap = argparse.ArgumentParser()
@@ -154,7 +196,6 @@ for video in videos:
 	video_out = cv2.VideoWriter(directory + video_name + '.avi', fourcc, 20.0, (1920, 1080))
 
 	for frame_number in range(0, total_frames):
-		rects = []
 		ret, frame = cap.read()	#capture frame-by-frame
 		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
 		circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, minDist = 200, param1=50, param2=20, minRadius=5, maxRadius=150)
@@ -162,12 +203,17 @@ for video in videos:
 		#for each circle in a frame, return the rectangle image of a frame original that correspond a traffic sign 		
 		if circles is not None:
 			circles = np.uint16(np.around(circles))
-			rect = predict_traffic_signal(circles, img, traffic_signals_model, dimensions)
+			rect, rect_resize = predict_traffic_signal(circles, img, traffic_signals_model, dimensions, frame)
 			
-			if rect:
-				rects.append(rect)
-		
-		img = cv2.putText(img,'Frame: ' + str(frame_number),(10,50), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)    
+			not_not_overtaking = [] #list of images that is not no overtaking signal
+			
+			#Verify if it is no overtaking signal
+			for (rectangle, roi_resize) in zip(rect, rect_resize):
+				not_no_overtaking = predict_no_overtaking_signal(frame, rect, roi_resize, no_overtaking_model, dimensions) 		
+
+			#if it is not no overtaking signal can be a speed limit signal
+			
+		img = cv2.putText(frame, 'Frame: ' + str(frame_number),(10,50), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)    
 		video_out.write(img)
 
 	cap.release() #Release the capture
