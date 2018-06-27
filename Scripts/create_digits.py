@@ -10,6 +10,7 @@ import cv2
 import os
 import matplotlib.font_manager
 import glob
+import pickle
 import imutils
 import PIL
 from PIL import ImageFont
@@ -25,8 +26,15 @@ for i in range(0,10):
 	if not os.path.exists(directory + str(i) + "/"):
 		os.makedirs(directory + str(i) + "/")
 
-fonts = matplotlib.font_manager.findSystemFonts(fontpaths="/usr/share/fonts/truetype/", fontext='ttf')
-wrong_fonts = ["KacstNaskh.tff", "KacstOffice.tff", 'Samyak-Malayalam.ttf', 'lklug.ttf' , "Samyak-Gujarati.ttf", "KacstFarsi.ttf", "KacstQurn.ttf", "KacstQurn.ttf",  "KacstPen.ttf", "DroidSansFallbackFull.ttf", "KacstFarsi.ttf" , "Samyak-Tamil.ttf", "KacstTitleL.ttf", "mry_KacstQurn.ttf", "KacstDecorative.ttf", "Samyak-Malayalam.ttf", "Samyak-Tamil.ttf", "KacstNaskh.ttf", "KacstTitle.ttf", "Lohit-Odia.ttf", "KacstLetter.ttf", "DroidSansFallbackFull.ttf", "KacstDecorative.ttf", "KacstDigital.ttf" , "KacstOffice.ttf", "KacstPen.ttf", "KacstArt.ttf", "utkal.ttf", "Lohit-Odia.ttf", "KacstDigital.ttf", "KacstBook.ttf", "Samyak-Devanagari.ttf", "KacstScreen.ttf", "KacstPoster.ttf", "KacstArt.ttf", "padmaa-Medium-0.5.ttf", "KacstBook.ttf", "KacstLetter.ttf", "padmaa-Medium-0.5.ttf", "KacstTitleL.ttf", "utkal.ttf", "lklug.ttf", "KacstTitle.ttf", "mry_KacstQurn.ttf", "Samyak-Devanagari.ttf", "Samyak-Gujarati.ttf", 'KacstPoster.ttf', "KacstScreen.ttf" ]
+#Fonts in computer
+#fonts = matplotlib.font_manager.findSystemFonts(fontpaths="/usr/share/fonts/truetype/", fontext='ttf')
+
+#loads fonts installed in my computer 
+file = open("fonts", 'rb')
+fonts = pickle.load(file)
+file.close()
+
+#I don't want these fonts from fonts
 list_font =  ['/usr/share/fonts/truetype/fonts-beng-extra/ani.ttf', '/usr/share/fonts/truetype/fonts-deva-extra/chandas1-2.ttf', '/usr/share/fonts/truetype/samyak/Samyak-Devanagari.ttf', '/usr/share/fonts/truetype/samyak-fonts/Samyak-Gujarati.ttf', '/usr/share/fonts/truetype/kacst/KacstNaskh.ttf', '/usr/share/fonts/truetype/kacst/KacstTitle.ttf', '/usr/share/fonts/truetype/fonts-gujr-extra/padmaa-Medium-0.5.ttf', '/usr/share/fonts/truetype/kacst/KacstPoster.ttf', '/usr/share/fonts/truetype/lohit-oriya/Lohit-Odia.ttf', '/usr/share/fonts/truetype/kacst/KacstDecorative.ttf', '/usr/share/fonts/truetype/samyak-fonts/Samyak-Tamil.ttf', '/usr/share/fonts/truetype/fonts-orya-extra/utkal.ttf', '/usr/share/fonts/truetype/kacst/KacstScreen.ttf', '/usr/share/fonts/truetype/kacst/KacstLetter.ttf', '/usr/share/fonts/truetype/kacst/KacstTitleL.ttf', '/usr/share/fonts/truetype/kacst/KacstDigital.ttf', '/usr/share/fonts/truetype/kacst/KacstArt.ttf', '/usr/share/fonts/truetype/kacst/KacstOffice.ttf', '/usr/share/fonts/truetype/kacst/KacstBook.ttf', '/usr/share/fonts/truetype/kacst/KacstPen.ttf', '/usr/share/fonts/truetype/kacst/KacstQurn.ttf', '/usr/share/fonts/truetype/kacst/KacstFarsi.ttf', '/usr/share/fonts/truetype/samyak-fonts/Samyak-Malayalam.ttf', '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf', '/usr/share/fonts/truetype/kacst/mry_KacstQurn.ttf', '/usr/share/fonts/truetype/sinhala/lklug.ttf']
 
 cont = 0
