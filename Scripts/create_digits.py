@@ -10,10 +10,12 @@ import cv2
 import os
 import matplotlib.font_manager
 import glob
+import imutils
 import PIL
 from PIL import ImageFont
 from PIL import Image
 from PIL import ImageDraw
+from imutils import paths, contours
 
 directory = "../../datasets/digits/"
 if not os.path.exists(directory):
@@ -66,6 +68,27 @@ for i in range(0,10):
 	images = glob.glob(directory + str(i) + "/*")
 	for path in images:
 		img = cv2.imread(path)
+		img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+		
+		#find number contours 
+		cnts = cv2.findContours(img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+		cnts = cnts[0] if imutils.is_cv2() else cnts[1]
+		
+
+		#find the biggest bouding box
+		mx = (0,0,0,0)      # biggest bounding box so far
+		mx_area = 0
+		for cont in cnts:
+			x,y,w,h = cv2.boundingRect(cont)
+			area = w*h
+			if area > mx_area:
+				mx = x,y,w,h
+				mx_area = area
+		x,y,w,h = mx
+
+		img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+		new_img = img[y: y+h, x: x+w].copy()
+		
 		#resize
-		img = cv2.resize(img, (28,28))
-		cv2.imwrite(path, img)
+		new_img = cv2.resize(new_img, (28,28))
+		cv2.imwrite(path, new_img)
