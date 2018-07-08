@@ -69,8 +69,8 @@ def preprocessing_frame(frame):
 	img = helpers.clahe(frame)	
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)	#Put the image in HSV color space
 	mask = helpers.mask_hsv_red(hsv)	#mask with the red color of the img
-	mask = cv2.GaussianBlur(mask, (3,3), 0)
-
+	mask = cv2.GaussianBlur(mask, (3,3), 0) 
+	
 	return mask, img
 
 def preprocessing_speed_limit(rect):
@@ -85,10 +85,10 @@ def preprocessing_speed_limit(rect):
 
 	#Take rect because rect has not been resized
 	img_gray = cv2.cvtColor(rect.copy(), cv2.COLOR_BGR2GRAY)
-	img_gray = cv2.GaussianBlur(img_gray, (5,5), 0) 
+#	img_gray = cv2.GaussianBlur(img_gray, (5,5), 0) #REUNIAO:Rever (3,3) ou nada
 
 	# Threshold the image
-	ret, img_gray = cv2.threshold(img_gray, 90, 255, cv2.THRESH_BINARY_INV)
+	ret, img_gray = cv2.threshold(img_gray, 90, 255, cv2.THRESH_BINARY_INV) #REUNIAO aumenta 90-testando (10 em 10) até 128+-
 
 	return img_gray
 
@@ -103,19 +103,20 @@ def predict_speed_limit_sign(final_frame, rect, model, dimensions):
 		dimensions (tuple): width and heigh to resize the digits image
 	
 	Returns:
- 
+		numpy.ndarray: frame with text
 	
 	'''
 
 	img_gray = preprocessing_speed_limit(rect)
 	
 	# Find contours in binary image
-	cnts = cv2.findContours(img_gray.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+	cnts = cv2.findContours(img_gray.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) #REUNIAO: trocar cadeia simples por outros
 	cnts = cnts[0] if imutils.is_cv2() else cnts[1]
 	digitCnts = []
 	
 	img_gray = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2BGR)
-	teste = img_gray.copy()
+	teste = img_gray.copy() #DEBUG
+	
 	#loop over the candidates of digit area 
 	for c in cnts:
 		#compute the bounding box 
@@ -123,8 +124,11 @@ def predict_speed_limit_sign(final_frame, rect, model, dimensions):
 		
 		img_gray_w, img_gray_h = img_gray.shape[1], img_gray.shape[0]
 		if w >= img_gray_w/4 and x > 3 and (x + w < img_gray_w - img_gray_w/10) and y > 3 and y < img_gray_h:
-			cv2.rectangle(teste, (x ,y), (x+w,y+h), (0,0,255), 2)
-			#cv2.imwrite("sl2/" + str(contador) + ".jpg", teste)
+			#DEBUG
+			if frame_number > 749 and frame_number < 815: #placa de 80km
+				cv2.rectangle(teste, (x ,y), (x+w,y+h), (0,0,255), 2)
+				cv2.imwrite("result/" + str(frame_number) + "-3digits-bb-" + str(contador) + ".jpg", teste) 
+				
 			digitCnts.append(c)
 
 	#sort the contours from left-to-right
@@ -142,7 +146,6 @@ def predict_speed_limit_sign(final_frame, rect, model, dimensions):
 		roi = cv2.resize(roi, (28,28)) #resize to HOG 
 		roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 		ret, roi = cv2.threshold(roi, 90, 255, cv2.THRESH_BINARY_INV)
-		
 		#HOG method
 		(H, hogImage) = hog(roi, orientations=9, pixels_per_cell=(8,8), cells_per_block=(2,2), transform_sqrt=True, visualise=True, block_norm='L2-Hys')
 		
@@ -150,6 +153,14 @@ def predict_speed_limit_sign(final_frame, rect, model, dimensions):
 		digits_pred = digits_model.predict(H.reshape(1,-1))[0]
 		
 		digit = (digits_pred.title()).lower()
+		#DEBUG
+		if frame_number > 749 and frame_number < 815: #placa de 80km
+			cv2.imwrite("result/" + str(frame_number) + "-4digit-" + str(digit) + ".jpg", roi) 
+			
+		#DEBUG
+		if digit == "8":
+			print("OITO ", frame_number)
+
 
 		if digit == "1":
 			digits = digits + "1"
@@ -196,7 +207,7 @@ def predict_no_overtaking_sign(final_frame, rect, rect_resize, model, dimensions
 	return not_no_overtaking
 
 
-def predict_traffic_sign(circles, img, model, dimensions, final_frame):
+def predict_traffic_sign(circles, img, model, dimensions, final_frame, mask = 0):
 	"""For each ROI found, verifies if it is or is not traffic sign
 
 	Args:
@@ -217,6 +228,14 @@ def predict_traffic_sign(circles, img, model, dimensions, final_frame):
 	for i in circles[0,:]:
 		x, y, radius = helpers.circle_values(i) 
 
+		#DEBUG
+		if frame_number > 749 and frame_number < 815: #placa de 80km
+			mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+			mask_aux = mask.copy()
+			mask = helpers.draw_circle(mask, (x,y), radius)
+			mask = np.hstack((mask_aux, mask))
+			cv2.imwrite("result/" + str(frame_number) + "-2mask-hough-" + str(contador) + ".jpg", mask)
+		
 		#Points to draw/take rectangle in image 
 		x1_PRED, y1_PRED, x2_PRED, y2_PRED = helpers.rectangle_coord((x,y), radius, img.shape)
 		
@@ -261,7 +280,7 @@ ap.add_argument('-d', "--dimension", required=False, default=(48,48), help="Dime
 args = vars(ap.parse_args())	#put in args all the arguments from argparse 
 
 #Test class    
-videos = glob.glob(args["testing"] + "*.mov")
+videos = glob.glob(args["testing"] + "*5164*.mov")
 dimensions = args["dimension"]
 
 #Loading the models
@@ -274,6 +293,8 @@ directory = "../Final_Videos/"
 if not os.path.exists(directory):
 	os.makedirs(directory)	#create the directory if it does not exist
 
+global contador
+global frame_number
 #Testing a model
 for video in videos:
 	#Predict for each video
@@ -282,22 +303,32 @@ for video in videos:
 	cap = cv2.VideoCapture(video)	#capture the video
 	video_name = video.split("/")[-1].split(".")[0]	#Video name withour extensions
 	total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+	frame_rate = round(cap.get(cv2.CAP_PROP_FPS))
 	#output_file = str(total_frames) + "\n" #Total number of frames for evaluate the model
 	
 	#To save a video with frames and rectangles in ROIs
-	video_out = cv2.VideoWriter(directory + video_name + '.avi', fourcc, 20.0, (1920, 1080))
+	width_video = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+	height_video = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) 
+	video_out = cv2.VideoWriter(directory + video_name + '.avi', fourcc, frame_rate, (width_video, height_video))
 
-	global contador
 	contador = 0
 	for frame_number in range(0, total_frames):
 		ret, frame = cap.read()	#capture frame-by-frame
 		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
-		circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, minDist = 200, param1=50, param2=20, minRadius=5, maxRadius=150)
 
+		#DEBUG
+		if frame_number > 749 and frame_number < 815: #placa de 80km
+			maskk = cv2.cvtColor(mask.copy(), cv2.COLOR_GRAY2BGR)
+			frame_clahe = np.hstack((frame, img, maskk))
+			cv2.imwrite("result/"+ str(frame_number) + "-1frame-clahe-mask-" + str(contador) + ".jpg", frame_clahe)
+		
+		circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, minDist = 200, param1=50, param2=20, minRadius=5, maxRadius=150)
+		
 		#for each circle in a frame, return the rectangle image of a frame original that correspond a traffic sign 		
 		if circles is not None:
+			contador = contador + 1 #DEBUG
 			circles = np.uint16(np.around(circles))
-			rect, rect_resize = predict_traffic_sign(circles, img, traffic_signs_model, dimensions, frame)
+			rect, rect_resize = predict_traffic_sign(circles, img, traffic_signs_model, dimensions, frame, mask.copy()) #mask.copy for DEBUG
 			
 			list_not_no_overtaking = [] #list of images that is not no overtaking sign
 			
@@ -310,8 +341,7 @@ for video in videos:
 			
 			#if it is not no overtaking sign can be a speed limit sign
 			for speed_limit in list_not_no_overtaking:
-				#
-				contador = contador + 1
+				contador = contador + 1 #DEBUG
 				frame = predict_speed_limit_sign(frame, speed_limit, digits_model, (28,28))
 
 		img = cv2.putText(frame, 'Frame: ' + str(frame_number),(10,50), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)    

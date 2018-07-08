@@ -23,7 +23,7 @@ def clahe (img):
 		img (np.ndarray): BGR image with CLAHE
 
 	"""
-
+	
 	lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
 	lab_planes = cv2.split(lab)
 	clahe = cv2.createCLAHE(clipLimit=3.0,tileGridSize=(6,6))
