@@ -17,8 +17,12 @@ from PIL import ImageFont
 from PIL import Image
 from PIL import ImageDraw
 from imutils import paths, contours
+import Augmentor
+import shutil
+
 
 directory = "../../datasets/digits/"
+
 if not os.path.exists(directory):
 	os.makedirs(directory)
 
@@ -71,6 +75,29 @@ for font in range(0, 8):
 			cv2.imwrite(directory + str(number) + "/" + str(cont) + ".jpg", img)
 			cont = cont + 1
 
+#Apply data augmentation with augmentor 
+for i in range(0,10):
+	p = Augmentor.Pipeline(directory + str(i))
+	p.skew_left_right(probability=0.5, magnitude=0.1)
+	p.random_distortion(probability=0.4, grid_width=2, grid_height=2, magnitude=2)
+	p.rotate(probability=0.6, max_left_rotation=5, max_right_rotation=5)
+	p.sample(1500)
+	p.process()
+
+#Put the data augmentation images in correct folder
+for i in range(0, 10):
+	current_directory = directory + str(i) + "/"
+	files = glob.glob(current_directory +  "*.jpg")
+	for f in files:
+		os.remove(f)
+
+	files = glob.glob(current_directory + "output/*") 
+	for f in files:
+		name = f.split("/")[-1]
+		os.rename(f, current_directory + name)	
+
+	shutil.rmtree(current_directory + "output")
+
 #Read folders and resize images
 for i in range(0,10):
 	images = glob.glob(directory + str(i) + "/*")
@@ -81,7 +108,6 @@ for i in range(0,10):
 		#find number contours 
 		cnts = cv2.findContours(img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 		cnts = cnts[0] if imutils.is_cv2() else cnts[1]
-		
 
 		#find the biggest bouding box
 		mx = (0,0,0,0)      # biggest bounding box so far
@@ -100,3 +126,5 @@ for i in range(0,10):
 		#resize
 		new_img = cv2.resize(new_img, (28,28))
 		cv2.imwrite(path, new_img)
+
+
