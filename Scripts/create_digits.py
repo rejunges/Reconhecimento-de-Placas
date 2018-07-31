@@ -124,7 +124,7 @@ for i in range(0,10):
 		new_img = img[y: y+h, x: x+w].copy()
 		
 		#resize
-		new_img = cv2.resize(new_img, (28,28))
+		new_img = cv2.resize(new_img, (48,48))
 		cv2.imwrite(path, new_img)
 
 

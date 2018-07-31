@@ -50,7 +50,7 @@ def load_models():
 
 	traffic_signs_model = open_model("trafficSigns.dat")  #first model is trafficSigns.dat
 	no_overtaking_model = open_model("noOvertaking.dat")	#second model is noOvertaking.dat
-	digits_model = open_model("digits.dat")	#third model is digits.dat
+	digits_model = open_model("digits5.dat")	#third model is digits.dat
 
 	return traffic_signs_model, no_overtaking_model, digits_model
 
@@ -125,10 +125,11 @@ def predict_speed_limit_sign(final_frame, rect, model, dimensions):
 		img_gray_w, img_gray_h = img_gray.shape[1], img_gray.shape[0]
 		if w >= img_gray_w/4 and x > 3 and (x + w < img_gray_w - img_gray_w/10) and y > 3 and y < img_gray_h:
 			#DEBUG
+			"""
 			if frame_number > 749 and frame_number < 815: #placa de 80km
 				cv2.rectangle(teste, (x ,y), (x+w,y+h), (0,0,255), 2)
 				cv2.imwrite("result/" + str(frame_number) + "-3digits-bb-" + str(contador) + ".jpg", teste) 
-				
+			"""	
 			digitCnts.append(c)
 
 	#sort the contours from left-to-right
@@ -143,7 +144,7 @@ def predict_speed_limit_sign(final_frame, rect, model, dimensions):
 		(x, y, w, h) = cv2.boundingRect(c)
 		roi = rect[y : y+h, x : x+w ] #extract the digit ROI
 
-		roi = cv2.resize(roi, (28,28)) #resize to HOG 
+		roi = cv2.resize(roi, (48,48)) #resize to HOG 
 		roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 		ret, roi = cv2.threshold(roi, 90, 255, cv2.THRESH_BINARY_INV)
 		#HOG method
@@ -154,13 +155,15 @@ def predict_speed_limit_sign(final_frame, rect, model, dimensions):
 		
 		digit = (digits_pred.title()).lower()
 		#DEBUG
+		"""
 		if frame_number > 749 and frame_number < 815: #placa de 80km
 			cv2.imwrite("result/" + str(frame_number) + "-4digit-" + str(digit) + ".jpg", roi) 
-			
+		"""	
 		#DEBUG
+		"""
 		if digit == "8":
 			print("OITO ", frame_number)
-
+		"""
 
 		if digit == "1":
 			digits = digits + "1"
@@ -229,13 +232,14 @@ def predict_traffic_sign(circles, img, model, dimensions, final_frame, mask = 0)
 		x, y, radius = helpers.circle_values(i) 
 
 		#DEBUG
+		'''
 		if frame_number > 749 and frame_number < 815: #placa de 80km
 			mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
 			mask_aux = mask.copy()
 			mask = helpers.draw_circle(mask, (x,y), radius)
 			mask = np.hstack((mask_aux, mask))
 			cv2.imwrite("result/" + str(frame_number) + "-2mask-hough-" + str(contador) + ".jpg", mask)
-		
+		'''
 		#Points to draw/take rectangle in image 
 		x1_PRED, y1_PRED, x2_PRED, y2_PRED = helpers.rectangle_coord((x,y), radius, img.shape)
 		
@@ -280,7 +284,7 @@ ap.add_argument('-d', "--dimension", required=False, default=(48,48), help="Dime
 args = vars(ap.parse_args())	#put in args all the arguments from argparse 
 
 #Test class    
-videos = glob.glob(args["testing"] + "*5164*.mov")
+videos = glob.glob(args["testing"] + "*2*.mov")
 dimensions = args["dimension"]
 
 #Loading the models
@@ -317,11 +321,12 @@ for video in videos:
 		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
 
 		#DEBUG
+		"""
 		if frame_number > 749 and frame_number < 815: #placa de 80km
 			maskk = cv2.cvtColor(mask.copy(), cv2.COLOR_GRAY2BGR)
 			frame_clahe = np.hstack((frame, img, maskk))
 			cv2.imwrite("result/"+ str(frame_number) + "-1frame-clahe-mask-" + str(contador) + ".jpg", frame_clahe)
-		
+		"""
 		circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, minDist = 200, param1=50, param2=20, minRadius=5, maxRadius=150)
 		
 		#for each circle in a frame, return the rectangle image of a frame original that correspond a traffic sign 		

@@ -92,7 +92,7 @@ for file in glob.glob(args["testing"] + '*.MOV'): #Take all files (need to be vi
 
                 #Points to draw/take rectangle in image 
                 
-                x1_PRED, y1_PRED, x2_PRED, y2_PRED = rectangle_coord((x,y), radius, padding, img.shape)
+                x1_PRED, y1_PRED, x2_PRED, y2_PRED = rectangle_coord((x,y), radius, img.shape)
                 
                 #cut image
                 rect = img[y1_PRED:y2_PRED, x1_PRED:x2_PRED].copy()  
