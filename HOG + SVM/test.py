@@ -23,16 +23,17 @@ import os
 import helpers
 
 def add_temp_coherence(detected_sign, recognized_sign, coord1=None, coord2=None):
-	""" Put new list in tempo_coherence list 
+	""" Put new list in temp_coherence list 
 	Args:
 		detected_sign (bool): true if exists a sign in frame otherwise false
 		recognized_sign (str): name of recognized sign otherwise None
+		coord1 (tuple): tuple with the coordinate x1 and y1
+		coord2 (tuple): tuple with the coordinate x2 and y2
 	"""
 
 	ant_temp = temp_coherence.pop() #remove the same frame informing 1 in detected sign
 	fn, ds, rs, c1, c2 = ant_temp[-1] #take the last one
 	if fn == frame_number:
-#		print("temp_coherence: ",temp_coherence)
 		if ds == False: #Before traffic sign identification
 			atual = [frame_number, detected_sign, recognized_sign, coord1, coord2]
 			temp_coherence.append([atual])
@@ -47,7 +48,8 @@ def add_temp_coherence(detected_sign, recognized_sign, coord1=None, coord2=None)
 				flag = True
 				for l in ant_temp:
 					fn, ds, rs, c1, c2 = l
-					if rs == None and flag:
+					if flag and rs == None :
+						#only once 
 						atual = [frame_number, detected_sign, recognized_sign, c1, c2]
 						l_final.append(atual)
 						flag = False
@@ -60,9 +62,6 @@ def add_temp_coherence(detected_sign, recognized_sign, coord1=None, coord2=None)
 				ant_temp.append(atual)
 				temp_coherence.append(ant_temp)
 				
-#		print("\n")
-#		print("temp_coherence2: ",temp_coherence)
-#		print("\n")
 
 def open_model(model, path = "../Models/"):
 	"""Open model through picle
