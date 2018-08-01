@@ -22,16 +22,47 @@ from imutils import contours
 import os
 import helpers
 
-def add_temp_coherence(detected_sign, recognized_sign):
+def add_temp_coherence(detected_sign, recognized_sign, coord1=None, coord2=None):
+	""" Put new list in tempo_coherence list 
+	Args:
+		detected_sign (bool): true if exists a sign in frame otherwise false
+		recognized_sign (str): name of recognized sign otherwise None
+	"""
+
 	ant_temp = temp_coherence.pop() #remove the same frame informing 1 in detected sign
-	fn, ds, rs = ant_temp[0]
+	fn, ds, rs, c1, c2 = ant_temp[-1] #take the last one
 	if fn == frame_number:
-		atual = [frame_number, 1, recognized_sign]
-		if rs == None: 
-			temp_coherence.append([atual]) #tuple with three elements: frame_number, detected_sign, recognized_sign
+#		print("temp_coherence: ",temp_coherence)
+		if ds == False: #Before traffic sign identification
+			atual = [frame_number, detected_sign, recognized_sign, coord1, coord2]
+			temp_coherence.append([atual])
 		else:
-			ant_temp.append(atual)
-			temp_coherence.append(ant_temp) #tuple with three elements: frame_number, detected_sign, recognized_sign
+			if recognized_sign == None: #after the first traffic sign recognizion
+				atual = [frame_number, detected_sign, recognized_sign, coord1, coord2]	
+				ant_temp.append(atual)
+				temp_coherence.append(ant_temp)
+			elif rs == None:
+				#iterate over the list to replace the recognized_sign
+				l_final = []
+				flag = True
+				for l in ant_temp:
+					fn, ds, rs, c1, c2 = l
+					if rs == None and flag:
+						atual = [frame_number, detected_sign, recognized_sign, c1, c2]
+						l_final.append(atual)
+						flag = False
+					else:
+						l_final.append(l)
+				temp_coherence.append(l_final)
+						 
+			else:
+				atual = [frame_number, detected_sign, recognized_sign, c1, c2]
+				ant_temp.append(atual)
+				temp_coherence.append(ant_temp)
+				
+#		print("\n")
+#		print("temp_coherence2: ",temp_coherence)
+#		print("\n")
 
 def open_model(model, path = "../Models/"):
 	"""Open model through picle
@@ -182,12 +213,12 @@ def predict_speed_limit_sign(final_frame, rect, model, dimensions):
 		elif len(digits) > 0: #If the first number is 1 then the need to read the others
 			digits = digits + digit
 		else: 
-			add_temp_coherence(1, str(digit)+"0")
+			add_temp_coherence(True, str(digit)+"0")
 			cv2.putText(final_frame, "Recognized: " + digit + "0 km/h",(10,350), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 			break
 
 	if len(digits) > 0:
-		add_temp_coherence(1, str(digits))
+		add_temp_coherence(True, str(digits))
 		cv2.putText(final_frame, "Recognized: " + digits + " km/h",(10,350), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 	
 	return final_frame
@@ -215,7 +246,7 @@ def predict_no_overtaking_sign(final_frame, rect, rect_resize, model, dimensions
 	pred = model.predict(H.reshape(1,-1))[0]
 	
 	if (pred.title()).lower() == 'pos':
-		add_temp_coherence(1, "noOvertaking")
+		add_temp_coherence(True, "noOvertaking")
 		#draw in video
 		cv2.putText(final_frame,'Recognized: No overtaking ',(10,250), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 	else:
@@ -275,8 +306,7 @@ def predict_traffic_sign(circles, img, model, dimensions, final_frame, mask = 0)
 		pred = model.predict(H.reshape(1,-1))[0]
 		if (pred.title().lower()) == "pos":
 			#It is a traffic sign
-			temp_coherence.pop() #remove the same frame informing 0 in detected sign
-			temp_coherence.append([[frame_number, 1, None]]) 
+			add_temp_coherence(True, None, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED))
 
 			helpers.draw_circle (final_frame, (x,y), radius)
 			cv2.rectangle(final_frame, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED), (0,0,255), 2)
@@ -293,6 +323,7 @@ def predict_traffic_sign(circles, img, model, dimensions, final_frame, mask = 0)
 global contador
 global frame_number
 global temp_coherence #temporal coherence
+global temp_image
 
 #Argparse
 ap = argparse.ArgumentParser()
@@ -334,13 +365,15 @@ for video in videos:
 	video_out = cv2.VideoWriter(directory + video_name + '.avi', fourcc, frame_rate, (width_video, height_video))
 
 	contador = 0
-	temp_coherence = [] 
+	temp_coherence = []
+	temp_image = [] 
 	for frame_number in range(0, total_frames):
+		
 		ret, frame = cap.read()	#capture frame-by-frame
 		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
 		
-		temp_coherence.append([[frame_number, 0, None]]) #list of list with three elements: frame_number, detected_sign, recognized_sign
-		
+		temp_coherence.append([[frame_number, False, None, None, None]]) #list of list with five elements: frame_number, detected_sign, recognized_sign, coord1, coord2
+		#temp_image.append([[frame_number, frame]])
 		#DEBUG
 		"""
 		if frame_number > 749 and frame_number < 815: #placa de 80km
