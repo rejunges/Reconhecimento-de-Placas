@@ -92,7 +92,7 @@ def load_models():
 
 	traffic_signs_model = open_model("trafficSigns.dat")  #first model is trafficSigns.dat
 	no_overtaking_model = open_model("noOvertaking.dat")	#second model is noOvertaking.dat
-	digits_model = open_model("digits5.dat")	#third model is digits.dat
+	digits_model = open_model("digits.dat")	#third model is digits.dat
 
 	return traffic_signs_model, no_overtaking_model, digits_model
 
