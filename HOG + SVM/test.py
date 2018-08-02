@@ -14,6 +14,7 @@ import cv2
 import argparse
 import glob
 import time
+import operator
 from skimage.feature import hog
 from sklearn import svm
 from imutils import paths, contours
@@ -22,24 +23,24 @@ from imutils import contours
 import os
 import helpers
 
-def add_temp_coherence(detected_sign, recognized_sign, coord1=None, coord2=None):
+def add_temp_coherence(detected_sign, recognized_sign, center=None, radius=None):
 	""" Put new list in temp_coherence list 
 	Args:
 		detected_sign (bool): true if exists a sign in frame otherwise false
 		recognized_sign (str): name of recognized sign otherwise None
-		coord1 (tuple): tuple with the coordinate x1 and y1
-		coord2 (tuple): tuple with the coordinate x2 and y2
+		center (tuple): tuple with the center coordinate x and y of traffic sign circle
+		radius (float): radius of traffic sign circle
 	"""
 
 	ant_temp = temp_coherence.pop() #remove the same frame informing 1 in detected sign
-	fn, ds, rs, c1, c2 = ant_temp[-1] #take the last one
+	fn, ds, rs, c, r = ant_temp[-1] #take the last one
 	if fn == frame_number:
 		if ds == False: #Before traffic sign identification
-			atual = [frame_number, detected_sign, recognized_sign, coord1, coord2]
+			atual = [frame_number, detected_sign, recognized_sign, center, radius]
 			temp_coherence.append([atual])
 		else:
 			if recognized_sign == None: #after the first traffic sign recognizion
-				atual = [frame_number, detected_sign, recognized_sign, coord1, coord2]	
+				atual = [frame_number, detected_sign, recognized_sign, center, radius]	
 				ant_temp.append(atual)
 				temp_coherence.append(ant_temp)
 			elif rs == None:
@@ -47,18 +48,18 @@ def add_temp_coherence(detected_sign, recognized_sign, coord1=None, coord2=None)
 				l_final = []
 				flag = True
 				for l in ant_temp:
-					fn, ds, rs, c1, c2 = l
+					fn, ds, rs, c, r = l
 					if flag and rs == None :
 						#only once 
-						atual = [frame_number, detected_sign, recognized_sign, c1, c2]
+						atual = [frame_number, detected_sign, recognized_sign, c, r]
 						l_final.append(atual)
 						flag = False
 					else:
 						l_final.append(l)
 				temp_coherence.append(l_final)
 						 
-			else:
-				atual = [frame_number, detected_sign, recognized_sign, c1, c2]
+			else: 
+				atual = [frame_number, detected_sign, recognized_sign, c, r]
 				ant_temp.append(atual)
 				temp_coherence.append(ant_temp)
 				
@@ -213,12 +214,12 @@ def predict_speed_limit_sign(final_frame, rect, model, dimensions):
 			digits = digits + digit
 		else: 
 			add_temp_coherence(True, str(digit)+"0")
-			cv2.putText(final_frame, "Recognized: " + digit + "0 km/h",(10,350), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+			#cv2.putText(final_frame, "Recognized: " + digit + "0 km/h",(10,350), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 			break
 
 	if len(digits) > 0:
 		add_temp_coherence(True, str(digits))
-		cv2.putText(final_frame, "Recognized: " + digits + " km/h",(10,350), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+		#cv2.putText(final_frame, "Recognized: " + digits + " km/h",(10,350), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 	
 	return final_frame
 
@@ -305,11 +306,11 @@ def predict_traffic_sign(circles, img, model, dimensions, final_frame, mask = 0)
 		pred = model.predict(H.reshape(1,-1))[0]
 		if (pred.title().lower()) == "pos":
 			#It is a traffic sign
-			add_temp_coherence(True, None, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED))
+			add_temp_coherence(True, None, (x,y), radius)
 
-			helpers.draw_circle (final_frame, (x,y), radius)
-			cv2.rectangle(final_frame, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED), (0,0,255), 2)
-			cv2.putText(final_frame,'Detected Traffic sign ',(10,150), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+			##helpers.draw_circle (final_frame, (x,y), radius)
+			##cv2.rectangle(final_frame, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED), (0,0,255), 2)
+			##cv2.putText(final_frame,'Detected Traffic sign ',(10,150), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 			
 			#It is a traffic sign
 			rects.append(rect)
@@ -372,7 +373,7 @@ for video in videos:
 		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
 		
 		temp_coherence.append([[frame_number, False, None, None, None]]) #list of list with five elements: frame_number, detected_sign, recognized_sign, coord1, coord2
-		#temp_image.append([[frame_number, frame]])
+		#temp_image.append([frame_number, frame])
 		#DEBUG
 		"""
 		if frame_number > 749 and frame_number < 815: #placa de 80km
@@ -402,12 +403,52 @@ for video in videos:
 				contador = contador + 1 #DEBUG
 				frame = predict_speed_limit_sign(frame, speed_limit, digits_model, (28,28))
 		
+		#After temporal coherence (10 frames) 
+		temp_dict = {}
+		if frame_number > 10:
+			#helpers.draw_circle(mask, (x,y), radius)
+			#create a dict with recognized sign and number of times it appears
+			for l_temp in temp_coherence:
+				for l in l_temp:
+					fn, ds, rs, center, radius = l
+					if rs not in temp_dict:
+						temp_dict[rs] = 0
+					else:
+						temp_dict[rs] += 1
+
+			#Only modifies the third element in list based on others
+			l_temp = temp_coherence[3]
+			cont_rs = set() 
+			for l in l_temp:
+				fn, ds, rs, center, radius = l
+				if rs != None:
+					cont_rs.add(rs)
+			
+			n = 0
+			for l in l_temp:
+				fn, ds, rs, center, radius = l
+				if ds == True and rs == None:
+					#Then choose which sign traffic is
+					#order dict by value 
+					order_dict = sorted(temp_dict.items(), key=lambda kv: kv[1])
+					probably_sign, _ = order_dict.pop()
+					while probably_sign in cont_rs:
+						if len(order_dict) > 0:
+							probably_sign, _ = order_dict.pop()
+						else:
+							break #or continue?
+					temp_coherence[3][n] = [fn, ds, probably_sign, center, radius ] #find the new value to recognized sign
+				n += 1	
+		
 		if len(temp_coherence) > 10:
 			temp_coherence.pop(0)
+			#temp_image.pop(0)
+
 		print(temp_coherence)
+		#print(temp_image)
 		print("\n")
-		img = cv2.putText(frame, 'Frame: ' + str(frame_number),(10,50), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)    
-		video_out.write(img)
+		##img = cv2.putText(frame, 'Frame: ' + str(frame_number),(10,50), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)    
+		##video_out.write(img)
 
 	cap.release() #Release the capture
 	video_out.release() #Release the video writer
