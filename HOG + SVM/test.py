@@ -213,12 +213,12 @@ def predict_speed_limit_sign(final_frame, rect, model, dimensions):
 		elif len(digits) > 0: #If the first number is 1 then the need to read the others
 			digits = digits + digit
 		else: 
-			add_temp_coherence(True, str(digit)+"0")
+			add_temp_coherence(True, str(digit)+"0 km/h")
 			#cv2.putText(final_frame, "Recognized: " + digit + "0 km/h",(10,350), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 			break
 
 	if len(digits) > 0:
-		add_temp_coherence(True, str(digits))
+		add_temp_coherence(True, str(digits) + " km/h")
 		#cv2.putText(final_frame, "Recognized: " + digits + " km/h",(10,350), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 	
 	return final_frame
@@ -246,9 +246,9 @@ def predict_no_overtaking_sign(final_frame, rect, rect_resize, model, dimensions
 	pred = model.predict(H.reshape(1,-1))[0]
 	
 	if (pred.title()).lower() == 'pos':
-		add_temp_coherence(True, "noOvertaking")
+		add_temp_coherence(True, "No overtaking")
 		#draw in video
-		cv2.putText(final_frame,'Recognized: No overtaking ',(10,250), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+		#cv2.putText(final_frame,'Recognized: No overtaking ',(10,250), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 	else:
 		not_no_overtaking = rect
 		
@@ -319,6 +319,28 @@ def predict_traffic_sign(circles, img, model, dimensions, final_frame, mask = 0)
 	
 	return rects, gray
 
+def save_video():
+	
+	list_frame = temp_coherence[0]
+	number, final_frame = temp_image[0]
+	sign_count = 0
+	valorH = 250
+
+	for i in list_frame:
+		fn, ds, rs, center, radius = i
+		if ds == True:
+			x1_PRED, y1_PRED, x2_PRED, y2_PRED = helpers.rectangle_coord(center, radius, final_frame.shape)
+			helpers.draw_circle (final_frame, center, radius)
+			cv2.rectangle(final_frame, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED), (0,0,255), 2)
+			cv2.putText(final_frame,'Detected Traffic sign ', (10,150), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+		if rs != None:
+			valorH += sign_count*100 
+			cv2.putText(final_frame,'Recognized: ' + rs ,(10,valorH), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+			sign_count += 1
+		
+	img = cv2.putText(final_frame, 'Frame: ' + str(number), (10,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 4)    
+	video_out.write(img)
+
 #################################################################################################################################
 global contador
 global frame_number
@@ -373,7 +395,7 @@ for video in videos:
 		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
 		
 		temp_coherence.append([[frame_number, False, None, None, None]]) #list of list with five elements: frame_number, detected_sign, recognized_sign, coord1, coord2
-		#temp_image.append([frame_number, frame])
+		temp_image.append([frame_number, frame])
 		#DEBUG
 		"""
 		if frame_number > 749 and frame_number < 815: #placa de 80km
@@ -406,7 +428,6 @@ for video in videos:
 		#After temporal coherence (10 frames) 
 		temp_dict = {}
 		if frame_number > 10:
-			#helpers.draw_circle(mask, (x,y), radius)
 			#create a dict with recognized sign and number of times it appears
 			for l_temp in temp_coherence:
 				for l in l_temp:
@@ -417,7 +438,8 @@ for video in videos:
 						temp_dict[rs] += 1
 
 			#Only modifies the third element in list based on others
-			l_temp = temp_coherence[3]
+			pos = 3
+			l_temp = temp_coherence[pos]
 			cont_rs = set() 
 			for l in l_temp:
 				fn, ds, rs, center, radius = l
@@ -437,16 +459,19 @@ for video in videos:
 							probably_sign, _ = order_dict.pop()
 						else:
 							break #or continue?
-					temp_coherence[3][n] = [fn, ds, probably_sign, center, radius ] #find the new value to recognized sign
+					temp_coherence[pos][n] = [fn, ds, probably_sign, center, radius ] #find the new value to recognized sign
 				n += 1	
+			
+			#Now save the frame in video
+			save_video()
 		
 		if len(temp_coherence) > 10:
 			temp_coherence.pop(0)
-			#temp_image.pop(0)
+			temp_image.pop(0)
 
-		print(temp_coherence)
+		#print(temp_coherence)
 		#print(temp_image)
-		print("\n")
+		#print("\n")
 		##img = cv2.putText(frame, 'Frame: ' + str(frame_number),(10,50), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)    
 		##video_out.write(img)
 
