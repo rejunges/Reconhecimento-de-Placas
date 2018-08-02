@@ -57,8 +57,7 @@ mode = args["machineLearning"]
 #Training a model
 if (int(mode) == 2):
     print("Training a Model with SVC...")
-    #model = svm.SVC()
-    model = svm.SVC(kernel='poly', degree=5)
+    model = svm.SVC(kernel='poly', degree=4, coef0=2)
 else:
     #default is 1
     print("Training a Model with LinearSVC...")
