@@ -25,12 +25,13 @@ import helpers
 
 def add_temp_coherence(detected_sign, recognized_sign, center=None, radius=None, order=None):
 	""" Put new list in temp_coherence list 
+
 	Args:
 		detected_sign (bool): true if exists a sign in frame otherwise false
 		recognized_sign (str): name of recognized sign otherwise None
 		center (tuple): tuple with the center coordinate x and y of traffic sign circle
 		radius (float): radius of traffic sign circle
-		order (int): order of the recognized signal (position in list)
+		order (int): order of the recognized signal in the same frame (position in list)
 	"""
 
 	ant_temp = temp_coherence.pop() #remove the same frame informing 1 in detected sign
@@ -45,20 +46,10 @@ def add_temp_coherence(detected_sign, recognized_sign, center=None, radius=None,
 				ant_temp.append(atual)
 				temp_coherence.append(ant_temp)
 			elif rs == None:
-				#iterate over the list to replace the recognized_sign
-				l_final = []
-				flag = True
-				for l in ant_temp:
-					fn, ds, rs, c, r, m = l
-					if flag and rs == None :
-						#only once 
-						atual = [frame_number, detected_sign, recognized_sign, c, r, m]
-						l_final.append(atual)
-						flag = False
-					else:
-						l_final.append(l)
-				temp_coherence.append(l_final)
-						 
+				#put in the given order the new recognized sign
+				temp_coherence.append(ant_temp)
+				fn, ds, rs, c, r, m = temp_coherence[-1][order]
+				temp_coherence[-1][order] = [fn, ds, recognized_sign, c, r, m] #change the position to a new recognized sign
 			else: 
 				atual = [frame_number, detected_sign, recognized_sign, c, r, modified]
 				ant_temp.append(atual)
@@ -492,6 +483,7 @@ for video in videos:
 			#For each detected sign try to recognizing the traffic sign 
 			for (rectangle, roi_resize) in zip(rect, rect_resize):
 				recognizing_signs(rectangle, roi_resize, dimensions, order_rs)
+				order_rs += 1
 		
 		"""
 		#After temporal coherence (10 frames) 
@@ -539,9 +531,9 @@ for video in videos:
 			temp_coherence.pop(0)
 			temp_image.pop(0)
 		
-		#print(temp_coherence)
+		print(temp_coherence)
 		#print(temp_image)
-		#print("\n")
+		print("\n")
 
 	
 	"""
