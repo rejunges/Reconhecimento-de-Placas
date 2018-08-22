@@ -282,10 +282,9 @@ def predict_traffic_sign(circles, img, model, dimensions, mask = 0):
 			gray.append(img_gray)
 				
 	return rects, gray
-"""
+
 def modified_coherence():
-	#Apply temporal coherence only in the last item of list_frame
-	fn_last, ds_last, rs_last, center_last, radius_last, modified_last = temp_coherence[-1]
+	
 	temp_dict = {}
 
 	#create a dict with recognized sign and number of times it appears until the last item of temp_coherence 
@@ -294,7 +293,7 @@ def modified_coherence():
 		for l in l_temp:
 			fn, ds, rs, center, radius, modified = l
 			comb_sign = ""
-			if modified == False: #ignore modified signs 
+			if modified == False and rs != None: #ignore modified signs 
 				comb_sign += rs + ","
 		comb_sign = comb_sign[:-1] #remove the last ","
 		if comb_sign not in temp_dict:
@@ -302,17 +301,7 @@ def modified_coherence():
 		else:
 			temp_dict[comb_sign] += 1
 
-	#Only modifies the last element in list based on others
-	l_temp = temp_coherence[-1]
-	#Add to a set the recognized signs of the frame  
-	
-	#cont_rs = set() 
-	#for l in l_temp:
-	#	fn, ds, rs, center, radius, _ = l
-	#	if rs != None:
-	#		cont_rs.add(rs)
-	
-
+	#order dictionary by item (number of times the combination sign appears)
 	order_dict = sorted(temp_dict.items(), key=lambda kv: kv[1])
 	probably_signs, _ = order_dict.pop()
 	probably_signs = probably_signs.split(",") #probably signs receive a list with probably signs
@@ -321,6 +310,7 @@ def modified_coherence():
 	for ps in probably_signs:
 		cont_ps.add(ps)
 
+	l_temp = temp_coherence[-1] #list the last frame signs
 	if len(probably_signs) == len(l_temp):
 		#detected and did not recognized
 		
@@ -330,20 +320,28 @@ def modified_coherence():
 			cont_rs.add(rs)	
 		
 		if cont_rs != cont_ps: # if equal then detected and did a correct recognizing
-			#detected and did a wrong recognizing	
+			pos = 0
+			#detected and did a wrong or None recognizing	
 			for l in l_temp:
 				fn, ds, rs, center, radius, modified = l
 				if ds == True and rs == None:
-
+					#Detected and did not recognize
+					if len(cont_ps) == 1: #if only exists one then probably should be this one
+						sign = cont_ps.pop()
+						temp_coherence[-1][pos] = [fn, ds, sign, center, radius, True]
+						break
+				pos += 1
 				#remove from probably signs the recognized sign
+				"""
 				for ps in probably_signs:
 					if rs == ps:
 						probably_signs.remove(rs)
+				"""
 
 
-	else:
+	#else:
 		#verify 
-
+	"""
 	n = 0
 	for l in l_temp:
 		fn, ds, rs, center, radius, modified = l
@@ -360,8 +358,8 @@ def modified_coherence():
 						break #or continue?
 				temp_coherence[-1][n] = [fn, ds, probably_sign, center, radius, True] #find the new value to recognized sign
 			n += 1	
-		
-"""
+	"""	
+
 def save_video():
 
 	list_frame = temp_coherence[0]
@@ -456,6 +454,9 @@ for video in videos:
 		ret, frame = cap.read()	#capture frame-by-frame
 		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
 		
+		if len(temp_coherence) == 10:
+			modified_coherence()
+
 		temp_coherence.append([[frame_number, False, None, None, None, False]]) #list of list with six elements: frame_number, detected_sign, recognized_sign, (x,y), radius, modified
 		temp_image.append([frame_number, frame])
 		#DEBUG
