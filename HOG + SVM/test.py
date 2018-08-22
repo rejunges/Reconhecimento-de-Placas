@@ -33,28 +33,24 @@ def add_temp_coherence(detected_sign, recognized_sign, center=None, radius=None,
 		radius (float): radius of traffic sign circle
 		order (int): order of the recognized signal in the same frame (position in list)
 	"""
-
-	ant_temp = temp_coherence.pop() #remove the same frame informing 1 in detected sign
-	fn, ds, rs, c, r, modified = ant_temp[-1] #take the last one
-	if fn == frame_number:
+	
+	if order == None:
+		#Predict traffic sign (first time)
+		ant_temp = temp_coherence.pop() #remove the same frame informing 1 in detected sign
+		fn, ds, rs, c, r, modified = ant_temp[-1] #take the last one
+		
 		if ds == False: #Before traffic sign identification
-			atual = [frame_number, detected_sign, recognized_sign, center, radius, False]
+			atual = [fn, detected_sign, recognized_sign, center, radius, False]
 			temp_coherence.append([atual])
 		else:
-			if recognized_sign == None: #after the first traffic sign recognizion
-				atual = [frame_number, detected_sign, recognized_sign, center, radius, modified]	
-				ant_temp.append(atual)
-				temp_coherence.append(ant_temp)
-			elif rs == None:
-				#put in the given order the new recognized sign
-				temp_coherence.append(ant_temp)
-				fn, ds, rs, c, r, m = temp_coherence[-1][order]
-				temp_coherence[-1][order] = [fn, ds, recognized_sign, c, r, m] #change the position to a new recognized sign
-			else: 
-				atual = [frame_number, detected_sign, recognized_sign, c, r, modified]
-				ant_temp.append(atual)
-				temp_coherence.append(ant_temp)
-				
+			#more than one traffic sign in a frame, then need one more item in the list
+			atual = [fn, detected_sign, recognized_sign, center, radius, False]	
+			ant_temp.append(atual)
+			temp_coherence.append(ant_temp)
+	else:
+		#Predict/recognizing traffic sign (with order in list)
+		fn, ds, rs, c, r, m = temp_coherence[-1][order]
+		temp_coherence[-1][order] = [fn, ds, recognized_sign, c, r, m] #change the position to a new recognized sign
 
 def open_model(model, path = "../Models/"):
 	"""Open model through picle
