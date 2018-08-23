@@ -283,6 +283,77 @@ def predict_traffic_sign(circles, img, model, dimensions, mask = 0):
 				
 	return rects, gray
 
+def probably_signs_coherence(biggest_length):
+	
+	probably_signs = []
+
+	for i in range(len(temp_coherence[:-1])-1, -1, -1):  # read descending order
+		if len(temp_coherence[i]) == biggest_length:
+			for l in temp_coherence[i]:
+				fn, ds, rs, c, r, m = l 
+				probably_signs.append(rs)
+		return probably_signs, i
+	
+	return probably_signs, -1 #Never occurs
+
+def traffic_sign_information_coherence(position, traffic_sign):
+	for l in temp_coherence[position]:
+		fn, ds, rs, c, r, m = l
+		if rs == traffic_sign:
+			return l
+	
+	return []
+
+def modified_coherence():
+	"""Second method """
+	
+	#Discovers length of frames lists
+	length_dict = {}
+	for l_temp in temp_coherence[:-1]:
+		#only computes if it was not modified or ds is False because rule 2 "Not detected and exists sign" 
+		cont = 0
+		for l in l_temp:
+			fn, ds, rs, c, r, m = l 
+			if m == False or ds == False:
+				cont += 1
+		if cont not in length_dict:
+			length_dict[cont] = 1
+		else:
+			length_dict[cont] += 1
+
+	#order dictionary by item 
+	length_order = sorted(length_dict.items(), key = lambda kv: kv[1])
+	biggest_length, number = length_order.pop()
+
+	#at least 5 frames have the same length then probably the new frame has too
+	if number >= 5:
+		last_length = len(temp_coherence[-1])
+		if last_length < biggest_length:
+			probably_signs, pos = probably_signs_coherence(biggest_length)
+			for l in temp_coherence[-1]:
+				fn_last, ds, rs, c, r, m = l 
+				if rs in probably_signs:
+					probably_signs.remove(rs)
+			# Now the len(probably_signs) == (biggest_length - last_length)
+			if len(probably_signs) == 1: #only one sign, otherwise need to know the radius
+				fn, ds, rs, c, r, m = traffic_sign_information_coherence(pos, probably_signs[0])
+				temp_coherence[-1].append([fn_last, False, rs, c, r, True])
+			
+			#else: #TODO: verify radius and probabilities
+				
+
+	"""
+	if frame_number == 250:
+		print(length_dict)
+		print(biggest_length)
+		print(number)
+		print(temp_coherence)
+	"""
+
+
+
+
+"""
 def modified_coherence():
 	
 	temp_dict = {}
@@ -290,16 +361,21 @@ def modified_coherence():
 	#create a dict with recognized sign and number of times it appears until the last item of temp_coherence 
 	#Ex: {"60 km/h, No overtaking": 8, "60 km/h":1}
 	for l_temp in temp_coherence[:-1]:
+		comb_sign = ""
 		for l in l_temp:
 			fn, ds, rs, center, radius, modified = l
-			comb_sign = ""
 			if modified == False and rs != None: #ignore modified signs 
 				comb_sign += rs + ","
-		comb_sign = comb_sign[:-1] #remove the last ","
-		if comb_sign not in temp_dict:
-			temp_dict[comb_sign] = 1
-		else:
-			temp_dict[comb_sign] += 1
+		
+		if comb_sign != "":
+			comb_sign = comb_sign[:-1] #remove the last ","
+			if comb_sign not in temp_dict:
+				temp_dict[comb_sign] = 1
+			else:
+				temp_dict[comb_sign] += 1
+
+	if len(temp_dict) == 0:
+		return
 
 	#order dictionary by item (number of times the combination sign appears)
 	order_dict = sorted(temp_dict.items(), key=lambda kv: kv[1])
@@ -309,6 +385,11 @@ def modified_coherence():
 	cont_ps = set() #cont probably signs
 	for ps in probably_signs:
 		cont_ps.add(ps)
+	if frame_number == 249:
+		print(temp_coherence)
+		print(order_dict)
+		print(probably_signs)
+		print(cont_ps)
 
 	l_temp = temp_coherence[-1] #list the last frame signs
 	if len(probably_signs) == len(l_temp):
@@ -330,36 +411,37 @@ def modified_coherence():
 						sign = cont_ps.pop()
 						temp_coherence[-1][pos] = [fn, ds, sign, center, radius, True]
 						break
+					#TODO: continuar aqui se o tamanho for maior que 1
 				pos += 1
 				#remove from probably signs the recognized sign
-				"""
-				for ps in probably_signs:
-					if rs == ps:
-						probably_signs.remove(rs)
-				"""
+				
+				#for ps in probably_signs:
+				#	if rs == ps:
+				#		probably_signs.remove(rs)
+				
 
 
 	#else:
 		#verify 
-	"""
-	n = 0
-	for l in l_temp:
-		fn, ds, rs, center, radius, modified = l
-		if modified == False:
-			if ds == True and rs == None: #detected and did not recognize
-				#Then choose which sign traffic is 
-				#order dict by value 
-				order_dict = sorted(temp_dict.items(), key=lambda kv: kv[1])
-				probably_sign, _ = order_dict.pop()
-				while probably_sign in cont_rs:
-					if len(order_dict) > 0:
-						probably_sign, _ = order_dict.pop()
-					else:
-						break #or continue?
-				temp_coherence[-1][n] = [fn, ds, probably_sign, center, radius, True] #find the new value to recognized sign
-			n += 1	
-	"""	
-
+	
+	#n = 0
+	#for l in l_temp:
+	#	fn, ds, rs, center, radius, modified = l
+	#	if modified == False:
+	#		if ds == True and rs == None: #detected and did not recognize
+	#			#Then choose which sign traffic is 
+	#			#order dict by value 
+	#			order_dict = sorted(temp_dict.items(), key=lambda kv: kv[1])
+	#			probably_sign, _ = order_dict.pop()
+	#			while probably_sign in cont_rs:
+	#				if len(order_dict) > 0:
+	#					probably_sign, _ = order_dict.pop()
+	#				else:
+	#					break #or continue?
+	#			temp_coherence[-1][n] = [fn, ds, probably_sign, center, radius, True] #find the new value to recognized sign
+	#		n += 1	
+		
+"""
 def save_video():
 
 	list_frame = temp_coherence[0]
@@ -528,9 +610,9 @@ for video in videos:
 			temp_coherence.pop(0)
 			temp_image.pop(0)
 		
-		print(temp_coherence)
+		#print(temp_coherence)
 		#print(temp_image)
-		print("\n")
+		#print("\n")
 
 	
 	"""
