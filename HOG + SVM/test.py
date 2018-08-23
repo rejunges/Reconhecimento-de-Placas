@@ -337,7 +337,7 @@ def modified_coherence():
 			# Now the len(probably_signs) == (biggest_length - last_length)
 			if len(probably_signs) == 1: #only one sign, otherwise need to know the radius
 				fn, ds, rs, c, r, m = traffic_sign_information_coherence(pos, probably_signs[0])
-				temp_coherence[-1].append([fn_last, False, rs, c, r, True])
+				temp_coherence[-1].append([fn_last, ds, rs, c, r, True])
 			
 			#else: #TODO: verify radius and probabilities
 				
