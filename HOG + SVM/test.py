@@ -283,38 +283,40 @@ def predict_traffic_sign(circles, img, model, dimensions, mask = 0):
 				
 	return rects, gray
 
-def probably_signs_coherence(biggest_length):
-	
-	probably_signs = []
-
-	for i in range(len(temp_coherence[:-1])-1, -1, -1):  # read descending order
-		if len(temp_coherence[i]) == biggest_length:
-			for l in temp_coherence[i]:
-				fn, ds, rs, c, r, m = l 
-				probably_signs.append(rs)
-		return probably_signs, i
-	
-	return probably_signs, -1 #Never occurs
-
-def traffic_sign_information_coherence(position, traffic_sign):
-	for l in temp_coherence[position]:
-		fn, ds, rs, c, r, m = l
-		if rs == traffic_sign:
-			return l
-	
-	return []
 
 def modified_coherence():
 	"""Second method """
 	
+	def probably_signs_coherence(biggest_length):
+		
+		probably_signs = []
+
+		for i in range(len(temp_coherence[:-1])-1, -1, -1):  # read descending order
+			if len(temp_coherence[i]) == biggest_length:
+				for l in temp_coherence[i]:
+					fn, ds, rs, c, r, m = l 
+					probably_signs.append(rs)
+			return probably_signs, i
+		
+		return probably_signs, -1 #Never occurs
+
+	def traffic_sign_information_coherence(position, traffic_sign):
+		for l in temp_coherence[position]:
+			fn, ds, rs, c, r, m = l
+			if rs == traffic_sign:
+				return l
+		
+		return []
+	
+
 	#Discovers length of frames lists
 	length_dict = {}
 	for l_temp in temp_coherence[:-1]:
-		#only computes if it was not modified or ds is False because rule 2 "Not detected and exists sign" 
+		#only computes if it was not modified 
 		cont = 0
 		for l in l_temp:
 			fn, ds, rs, c, r, m = l 
-			if m == False or ds == False:
+			if m == False:
 				cont += 1
 		if cont not in length_dict:
 			length_dict[cont] = 1
@@ -337,13 +339,40 @@ def modified_coherence():
 			# Now the len(probably_signs) == (biggest_length - last_length)
 			if len(probably_signs) == 1: #only one sign, otherwise need to know the radius
 				fn, ds, rs, c, r, m = traffic_sign_information_coherence(pos, probably_signs[0])
-				temp_coherence[-1].append([fn_last, ds, rs, c, r, True])
+				temp_coherence[-1].append([fn_last, False, rs, c, r, True])
 			
 			#else: #TODO: verify radius and probabilities
-				
+		
+		elif last_length == biggest_length:
+			#Verifies if it has some None in rs 
+			flag = False
+			position_none = []
+			n = 0
+			for l in temp_coherence[-1]:
+				fn_last, ds, rs, c, r, m = l
+				if rs == None:
+					flag = True
+					position_none.append(n) #position where the rs is None
+				n += 1
+					
+			if flag: #rule 1: detected and not recognized
+				probably_signs, pos = probably_signs_coherence(biggest_length)
+				for l in temp_coherence[-1]:
+					fn_last, ds_last, rs, c_last, r_last, m = l
+					if rs in probably_signs:
+						probably_signs.remove(rs)
+			
+				if len(probably_signs) == 1 and len(position_none) == 1:  # only one sign, otherwise need to know the radius
+					fn, ds, rs, c, r, m = traffic_sign_information_coherence(pos, probably_signs[0])
+					pos = position_none[0]
+					temp_coherence[-1][pos] = [fn_last, ds_last, rs, c_last, r_last, True]
+
+	#disconsider the length of frames list
+	#else:
+
 
 	"""
-	if frame_number == 250:
+	if frame_number == 252:
 		print(length_dict)
 		print(biggest_length)
 		print(number)
@@ -535,10 +564,10 @@ for video in videos:
 		
 		ret, frame = cap.read()	#capture frame-by-frame
 		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
-		
+		"""
 		if len(temp_coherence) == 10:
 			modified_coherence()
-
+		"""
 		temp_coherence.append([[frame_number, False, None, None, None, False]]) #list of list with six elements: frame_number, detected_sign, recognized_sign, (x,y), radius, modified
 		temp_image.append([frame_number, frame])
 		#DEBUG
