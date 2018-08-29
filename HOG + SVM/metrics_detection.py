@@ -55,14 +55,17 @@ def plot_confusion_matrix(cm, classes,
 
 
 def update_vectors(ground_truth, predictions, frame, frame_PRED, line_PRED, file_PRED, code_GT, code_PRED):
-    ground_truth.append(isFalse)
-    if (frame == frame_PRED):
-        predictions.append(isTrue)
-        line_PRED = file_PRED.readline()
-    else:
-        predictions.append(isFalse)
+	ground_truth.append(isFalse)
+	if (frame == frame_PRED):
+		if(code_PRED != 18):
+			predictions.append(isTrue)
+		else:
+			predictions.append(isFalse)
+		line_PRED = file_PRED.readline()
+	else:
+		predictions.append(isFalse)
 
-    return line_PRED
+	return line_PRED
 
 
 #Argparse
@@ -94,6 +97,7 @@ line_PRED = file_PRED.readline()
 
 isTrue = "Detectou"
 isFalse = "Nao detectou"
+
 
 def read_PRED(line_PRED):
 	line_PRED = line_PRED.strip()
@@ -134,8 +138,8 @@ for line in range(0, total_lines):
 	#x1_GT and y1_GT are the top left coord, then the x2_GT e y2_GT are the bottom right coord
 	x2_GT = x1_GT + width_GT
 	y2_GT = y1_GT + heigth_GT
-#	print("Frame Pred", frame_PRED)
-#	print("Frame GT", frame_GT)
+	print("Frame Pred", frame_PRED)
+	print("Frame GT", frame_GT)
 	if frame_PRED >= frame_GT and flag:
 		frame = frame_GT	
 	else:
@@ -155,7 +159,7 @@ for line in range(0, total_lines):
 				(x1_GT, y1_GT), (x2_GT, y2_GT), (x1_PRED, y1_PRED), (x2_PRED, y2_PRED))
 
 			#Verify if pred is Positive and intersection over union > 0.5
-			if (iou > 0.5):  # TODO: verify 0.5
+			if (code_PRED != 18):  # TODO: verify 0.5
 				#true positive
 				predictions.append(isTrue)
 			else:
@@ -178,6 +182,7 @@ for line in range(0, total_lines):
 			ground_truth, predictions, frame, frame_PRED, line_PRED, file_PRED, code_GT, code_PRED)
 	
 	print("Frame: " + str(frame))
+	print("\n")
 
 #print(predictions)
 #print(ground_truth)
