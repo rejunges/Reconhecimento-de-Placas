@@ -127,7 +127,7 @@ def run_list_GT(line_GT, flag):
 	frame_GT_ant = frame_GT
 
 	while frame_GT == frame_GT_ant and line_GT:
-		list_GT.append([frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT])
+		list_GT.append([frame_GT, x1_GT, y1_GT, width_GT,  heigth_GT, code_GT])
 		line_GT = file_GT.readline()
 		if line_GT:
 			frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT = read_GT(line_GT)
@@ -137,6 +137,13 @@ def run_list_GT(line_GT, flag):
 
 	return list_GT, frame_GT, flag, line_GT
 
+def frame_number(frame_PRED, frame_GT, flag):
+	if frame_PRED >= frame_GT and flag:
+		frame = frame_GT
+	else:
+		frame = frame_PRED
+
+	return frame
 
 #Open GT file
 file_GT = open(filename_GT, "r")
@@ -168,102 +175,86 @@ while not close:
 		#Run both lists
 		list_GT, frame_GT, flag, line_GT = run_list_GT(line_GT, flag)
 		list_PRED, frame_PRED, close, line_PRED = run_list_PRED(line_PRED, close)
+
 	else:
 		#run List_PRED
 		list_PRED, frame_PRED, close, line_PRED = run_list_PRED(line_PRED, close)
 	
-	print("PRED: ", list_PRED)
-	print("GT: ", list_GT)
-"""
-	list_PRED = []
-	list_GT = []
+	#Order list by code_PRED and code_GT
+	list_PRED.sort(key=lambda x: x[6])
+	list_GT.sort(key=lambda x: x[5])
+	frame = frame_number(frame_PRED, frame_GT, flag)
+	#print("PRED: {}\nGT: {}\nFrame: {}\n\n ".format(list_PRED,list_GT, frame))
 	
-	#Read Pred file and put information in  list_PRED
-	frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = read_PRED(line_PRED)
-	frame_PRED_ant = frame_PRED
-	
-	while frame_PRED == frame_PRED_ant and line_PRED:
-		list_PRED.append([frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED])
-		
-		#read line_PRED and save informations
-		line_PRED = file_PRED.readline()
-		if line_PRED:
-			frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = read_PRED(line_PRED)
-		else:
-			close = True
-	frame_PRED = frame_PRED_ant			
+	#Here starts the list predictions and ground_truth
+	if frame == frame_GT:
+		if len(list_GT) < len(list_PRED):
+			list_aux_GT = list_GT.copy()
+			for gt in list_aux_GT:
+				list_GT.remove(gt)
+				frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT = gt
+				ground_truth.append(isTrue)
+				if frame == frame_PRED:
+					frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = list_PRED.pop(0)
+					if code_PRED != 18:
+						predictions.append(isTrue)
+					else:
+						predictions.append(isFalse)
+				else:
+					predictions.append(isFalse)
+			list_aux_PRED = list_PRED.copy()
+			for pred in list_aux_PRED:
+				predictions.append(isTrue)
+				ground_truth.append(isFalse)
+				list_PRED.remove(pred)
+				
+		elif frame == frame_PRED: #and len(PRED) <= len(GT)
+			list_aux_PRED = list_PRED.copy()
+			for pred in list_aux_PRED:
+				list_PRED.remove(pred)
+				frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = pred
+				frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT = list_GT.pop(0)
+				if code_PRED != 18:
+					predictions.append(isTrue)
+				else:
+					predictions.append(isFalse)
+				ground_truth.append(isTrue)
+				
+			list_aux_GT = list_GT.copy()
+			for gt in list_aux_GT:
+				ground_truth.append(isTrue)
+				predictions.append(isFalse)
+				list_GT.remove(gt)
 
-	print("PRED", list_PRED)
+		else: #len(PRED) <= len(GT) and frame != frame_PRED
+			list_aux_PRED = list_PRED.copy()
+			for pred in list_aux_PRED:
+				list_PRED.remove(pred)
+				frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = pred
+				frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT = list_GT.pop(0)
+				predictions.append(isFalse)
+				ground_truth.append(isTrue)
 
-	#Read GT file and put information in list_GT
-	if flag:
-		frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT = read_GT(line_GT)
-		frame_GT_ant = frame_GT
-
-		while frame_GT == frame_GT_ant and line_GT:
-			list_GT.append([frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT])
-			line_GT = file_GT.readline()
-			if line_GT:
-				frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT = read_GT(line_GT)
-			else:
-				flag = False
-	frame_GT = frame_GT_ant
-	print("GT: ", list_GT)
-"""	
-"""
-	#x1_GT and y1_GT are the top left coord, then the x2_GT e y2_GT are the bottom right coord
-	x2_GT = x1_GT + width_GT
-	y2_GT = y1_GT + heigth_GT
-	print("Frame Pred", frame_PRED)
-	print("Frame GT", frame_GT)
-	if frame_PRED >= frame_GT and flag:
-		frame = frame_GT
-	else:
-		frame = frame_PRED
-
-	if (frame == frame_GT):
-		ground_truth.append(isTrue)
-		line_GT = file_GT.readline()
-
-		if(frame == frame_PRED):
-			#can be true positive or false negative
-			x2_PRED = x1_PRED + width_GT
-			y2_PRED = y1_PRED + heigth_GT
-
-			#calculate the intersection over union
-			iou = intersection_over_union(
-				(x1_GT, y1_GT), (x2_GT, y2_GT), (x1_PRED, y1_PRED), (x2_PRED, y2_PRED))
-
-			#Verify if pred is Positive and intersection over union > 0.5
-			if (code_PRED != 18):  # TODO: verify 0.5
-				#true positive
+			list_aux_GT = list_GT.copy()
+			for gt in list_aux_GT:
+				ground_truth.append(isTrue)
+				predictions.append(isFalse)
+				list_GT.remove(gt)
+	elif (frame < frame_GT or frame > frame_GT):
+		list_aux_PRED = list_PRED.copy()
+		for pred in list_aux_PRED:
+			list_PRED.remove(pred)
+			frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = pred
+			if code_PRED != 18:
 				predictions.append(isTrue)
 			else:
-				#false negative
-				predictions.append(isFalse)  # ERROR IOU
+				predictions.append(isFalse)
+			ground_truth.append(isFalse)
 
-			#read the next line
-			line_PRED = file_PRED.readline()
-		else:
-			predictions.append(isFalse)
 
-	elif (frame < frame_GT):
+#print("Pred: {}\nGT: {}".format(predictions, ground_truth))
+#print("Pred: {}\nGT: {}".format(len(predictions), len(ground_truth)))
 
-		line_PRED = update_vectors(
-			ground_truth, predictions, frame, frame_PRED, line_PRED, file_PRED, code_GT, code_PRED)
-
-	elif (frame > frame_GT):
-		#ground truth file ends
-		line_PRED = update_vectors(
-			ground_truth, predictions, frame, frame_PRED, line_PRED, file_PRED, code_GT, code_PRED)
-
-	print("Frame: " + str(frame))
-	print("\n")
-"""
-"""
-#print(predictions)
-#print(ground_truth)
-#print(total_frames)
 #Close files to open others
 file_GT.close()
 file_PRED.close()
@@ -290,7 +281,7 @@ plot_confusion_matrix(cnf_matrix, classes=class_names,
 #plt.show()
 
 plt.savefig('confusion_matrix_detection.png', bbox_inches='tight')
-"""
+
 '''
 print("Classification Report for {}".format(filename_GT))
 
