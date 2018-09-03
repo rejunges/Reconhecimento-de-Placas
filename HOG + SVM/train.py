@@ -15,6 +15,8 @@ Python Version: 3.6
 #python train.py -t ../../60km_h/neg_pos_48x48/ -mf training_60km.dat
 #python train.py -t ../../80km_h/neg_pos_48x48/ -mf training_80km.dat
 #python train.py -t ../../datasets/digits/ -mf digits.dat -ml 2
+#python train.py -t ../../datasets/trafficSign/ -mf trafficSigns.dat 
+
 
 import numpy as np 
 import pickle
@@ -57,8 +59,7 @@ mode = args["machineLearning"]
 #Training a model
 if (int(mode) == 2):
     print("Training a Model with SVC...")
-    #model = svm.SVC()
-    model = svm.SVC(kernel='poly', degree=5)
+    model = svm.SVC(kernel='poly', degree=4, coef0=2)
 else:
     #default is 1
     print("Training a Model with LinearSVC...")
