@@ -154,6 +154,15 @@ def frame_number(frame_PRED, frame_GT, flag):
 
 	return frame
 
+def jaccard_index(x1_PRED, y1_PRED, width_GT, heigth_GT):
+	x2_PRED = x1_PRED + width_GT
+	y2_PRED = y1_PRED + heigth_GT
+	x2_GT = x1_GT + width_GT
+	y2_GT = y1_GT + heigth_GT
+	#calculate the intersection over union
+	iou = intersection_over_union(
+		(x1_GT, y1_GT), (x2_GT, y2_GT), (x1_PRED, y1_PRED), (x2_PRED, y2_PRED))
+	return iou
 
 #Open GT file
 file_GT = open(filename_GT, "r")
@@ -207,14 +216,10 @@ while not close:
 				if frame == frame_PRED:
 					frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = list_PRED.pop(
 					    0)
-					x2_PRED = x1_PRED + width_GT
-					y2_PRED = y1_PRED + heigth_GT
-					x2_GT = x1_GT + width_GT
-					y2_GT = y1_GT + heigth_GT
-					#calculate the intersection over union
-					iou = intersection_over_union(
-					    (x1_GT, y1_GT), (x2_GT, y2_GT), (x1_PRED, y1_PRED), (x2_PRED, y2_PRED))
-					if code_PRED != 18 and iou > 0.7:
+
+					iou = jaccard_index(x1_PRED, y1_PRED, width_GT, heigth_GT)
+					
+					if code_PRED != 18:
 						predictions.append([isTrue, frame])
 					else:
 						predictions.append([isFalse, frame])
@@ -233,6 +238,8 @@ while not close:
 				list_PRED.remove(pred)
 				frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = pred
 				frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT = list_GT.pop(0)
+				
+				iou = jaccard_index(x1_PRED, y1_PRED, width_GT, heigth_GT)
 				if code_PRED != 18:
 					predictions.append([isTrue, frame])
 				else:
@@ -264,6 +271,7 @@ while not close:
 		for pred in list_aux_PRED:
 			list_PRED.remove(pred)
 			frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = pred
+						
 			if code_PRED != 18:
 				predictions.append([isTrue, frame])
 			else:
