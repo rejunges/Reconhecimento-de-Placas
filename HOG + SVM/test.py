@@ -104,14 +104,14 @@ def preprocessing_frame(frame):
 	return mask, img
 
 def preprocessing_speed_limit(rect):
-	''' Creates a binary mask to segments the digits from speed limit signs.
+	""" Creates a binary mask to segments the digits from speed limit signs.
 
 	Args:
 		rect (numpy.ndarray): speed limit image from original frame (without resize)
 
 	Returns:
 		(numpy.ndarray): binary image from preprocessing
-	'''
+	"""
 
 	#Take rect because rect has not been resized
 	img_gray = cv2.cvtColor(rect.copy(), cv2.COLOR_BGR2GRAY)
@@ -123,7 +123,7 @@ def preprocessing_speed_limit(rect):
 	return img_gray
 
 def predict_speed_limit_sign(rect, model, dimensions, order_rs):
-	'''Segments rect image in digits and checks the value (0-9) for each digit using the
+	"""Segments rect image in digits and checks the value (0-9) for each digit using the
 	digits model. 
 
 	Args:
@@ -131,11 +131,12 @@ def predict_speed_limit_sign(rect, model, dimensions, order_rs):
 		model: digits model from train.py
 		dimensions (tuple): width and heigh to resize the digits image
 		order_rs (int): used to organize the temporal coherence list
-	'''
+	"""
 
 	img_gray = preprocessing_speed_limit(rect)
 	
 	# Find contours in binary image
+	
 	cnts = cv2.findContours(img_gray.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) #REUNIAO: trocar cadeia simples por outros
 	cnts = cnts[0] if imutils.is_cv2() else cnts[1]
 	digitCnts = []
@@ -193,13 +194,12 @@ def predict_speed_limit_sign(rect, model, dimensions, order_rs):
 	if len(digits) > 0:
 		add_temp_coherence(True, str(digits) + " km/h", order=order_rs)
 
-
-
 def predict_no_overtaking_sign(rect, rect_resize, model, dimensions, order_rs):
-	'''Verify if rect is no overtaking sign
+	"""Verify if rect is no overtaking sign
 
 	Args:
 		rect (numpy.ndarray): image rectangle (ROI) to verify if is no overtaking sign
+		rect_resize (numpy.ndarray): resized rect from the predict traffic sign function
 		model: no overtaking model from train.py
 		dimensions (tuple): width and heigh to resize the rect (ROI) image
 		order_rs (int): used to organize the temporal coherence list
@@ -207,7 +207,7 @@ def predict_no_overtaking_sign(rect, rect_resize, model, dimensions, order_rs):
 	Returns:
 		list: returns a list with the not no overtaking traffic signs 
 	
-	'''
+	"""
 	
 	not_no_overtaking = []
 
@@ -233,6 +233,7 @@ def predict_traffic_sign(circles, img, model, dimensions, mask = 0):
 		img (numpy.ndarray): image to cut the ROI 
 		model: traffic sinal model from train.py 
 		dimensions (tuple): width and heigh to resize the ROI image
+		mask (numpy.ndarray): should be used only for debugging
 
 	Returns:
 		tuple: returns 2 elements. The first one is a list of rectangles (ROIS) which are traffic sign
@@ -285,7 +286,7 @@ def predict_traffic_sign(circles, img, model, dimensions, mask = 0):
 
 
 def modified_coherence():
-	"""Second method """
+	"""This function accomplishes the temporal coherence in the frames list  """
 	
 	def probably_signs_coherence(biggest_length):
 		
@@ -379,102 +380,11 @@ def modified_coherence():
 		print(temp_coherence)
 	"""
 
-
-
-
-"""
-def modified_coherence():
-	
-	temp_dict = {}
-
-	#create a dict with recognized sign and number of times it appears until the last item of temp_coherence 
-	#Ex: {"60 km/h, No overtaking": 8, "60 km/h":1}
-	for l_temp in temp_coherence[:-1]:
-		comb_sign = ""
-		for l in l_temp:
-			fn, ds, rs, center, radius, modified = l
-			if modified == False and rs != None: #ignore modified signs 
-				comb_sign += rs + ","
-		
-		if comb_sign != "":
-			comb_sign = comb_sign[:-1] #remove the last ","
-			if comb_sign not in temp_dict:
-				temp_dict[comb_sign] = 1
-			else:
-				temp_dict[comb_sign] += 1
-
-	if len(temp_dict) == 0:
-		return
-
-	#order dictionary by item (number of times the combination sign appears)
-	order_dict = sorted(temp_dict.items(), key=lambda kv: kv[1])
-	probably_signs, _ = order_dict.pop()
-	probably_signs = probably_signs.split(",") #probably signs receive a list with probably signs
-	
-	cont_ps = set() #cont probably signs
-	for ps in probably_signs:
-		cont_ps.add(ps)
-	if frame_number == 249:
-		print(temp_coherence)
-		print(order_dict)
-		print(probably_signs)
-		print(cont_ps)
-
-	l_temp = temp_coherence[-1] #list the last frame signs
-	if len(probably_signs) == len(l_temp):
-		#detected and did not recognized
-		
-		cont_rs = set()
-		for l in l_temp:
-			fn, ds, rs, center, radius, modified = l
-			cont_rs.add(rs)	
-		
-		if cont_rs != cont_ps: # if equal then detected and did a correct recognizing
-			pos = 0
-			#detected and did a wrong or None recognizing	
-			for l in l_temp:
-				fn, ds, rs, center, radius, modified = l
-				if ds == True and rs == None:
-					#Detected and did not recognize
-					if len(cont_ps) == 1: #if only exists one then probably should be this one
-						sign = cont_ps.pop()
-						temp_coherence[-1][pos] = [fn, ds, sign, center, radius, True]
-						break
-					#TODO: continuar aqui se o tamanho for maior que 1
-				pos += 1
-				#remove from probably signs the recognized sign
-				
-				#for ps in probably_signs:
-				#	if rs == ps:
-				#		probably_signs.remove(rs)
-				
-
-
-	#else:
-		#verify 
-	
-	#n = 0
-	#for l in l_temp:
-	#	fn, ds, rs, center, radius, modified = l
-	#	if modified == False:
-	#		if ds == True and rs == None: #detected and did not recognize
-	#			#Then choose which sign traffic is 
-	#			#order dict by value 
-	#			order_dict = sorted(temp_dict.items(), key=lambda kv: kv[1])
-	#			probably_sign, _ = order_dict.pop()
-	#			while probably_sign in cont_rs:
-	#				if len(order_dict) > 0:
-	#					probably_sign, _ = order_dict.pop()
-	#				else:
-	#					break #or continue?
-	#			temp_coherence[-1][n] = [fn, ds, probably_sign, center, radius, True] #find the new value to recognized sign
-	#		n += 1	
-		
-"""
 def save_video():
+	""" This function save the new frame (final frame with annotations) in the new video."""
 
-	list_frame = temp_coherence[0]
-	number, final_frame = temp_image[0]
+	list_frame = temp_coherence[-1]
+	number, final_frame = temp_image[-1]
 	sign_count = 0
 	valorH = 250
 
@@ -489,12 +399,25 @@ def save_video():
 			valorH += sign_count*100 
 			cv2.putText(final_frame,'Recognized: ' + rs ,(10,valorH), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 			sign_count += 1
-		
+		#only for metrics
+		if  ds == False:
+			filename_output.write(str(frame_number) + ",0,0,0,0,False,18\n") 
+		elif ds == True and rs == None:
+			filename_output.write(str(frame_number) + "," + str(x1_PRED) + "," + str(y1_PRED) +"," + str(x2_PRED)
+			 + "," +str(y2_PRED) + "," + "True,19\n")
+		else:
+			try:
+				filename_output.write(str(frame_number) + "," + str(x1_PRED) + "," +
+			                      str(y1_PRED) + "," + str(x2_PRED) + "," + str(y2_PRED) + "," + "True," + str(code_traffic[rs]) + "\n")
+			except:
+				filename_output.write(str(frame_number) + "," + str(x1_PRED) + "," +
+                                    str(y1_PRED) + "," + str(x2_PRED) + "," + str(y2_PRED) + "," + "True,18\n")
 	img = cv2.putText(final_frame, 'Frame: ' + str(number), (10,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 4)    
 	video_out.write(img)
 
+
 def recognizing_signs(rect, rect_resize, dimensions, order_rs):
-	'''This method calls others methods to discover which traffic sign was detected
+	"""This method calls others methods to discover which traffic sign was detected
 	
 	Args:
 		rect (numpy.ndarray): image rectangle (ROI) to recognize sign
@@ -502,7 +425,7 @@ def recognizing_signs(rect, rect_resize, dimensions, order_rs):
 		dimensions (tuple): width and heigh to resize the rect (ROI) image
 		order (int): used to organize the temporal coherence list
 	
-	'''
+	"""
 
 	not_no_overtaking = predict_no_overtaking_sign(rectangle, roi_resize, no_overtaking_model, dimensions, order_rs) 		
 
@@ -531,6 +454,12 @@ args = vars(ap.parse_args())	#put in args all the arguments from argparse
 videos = glob.glob(args["testing"] + "*2*.mov")
 dimensions = args["dimension"]
 
+code_traffic = {0: "No overtaking", 1: "10 km/h", 2: "20 km/h", 3: "30 km/h", 4: "40 km/h",
+				5: "50 km/h", 6: "60 km/h", 7: "70 km/h", 8: "80 km/h", 9: "90 km/h", 10: "100 km/h", 11: "110 km/h",
+				12: "120 km/h", 13: "Inicio de pista dupla", 14: "Fim de pista dupla", 15: "Passagem obrigatoria",
+				16: "Parada obrigatoria", 17: "Intersecao em circulo", 18: "Erro", 19: "Detectou apenas"}
+code_traffic = {y: x for x, y in code_traffic.items()}  # invert key and items
+
 #Loading the models
 print("Loading models...")
 traffic_signs_model, no_overtaking_model, digits_model = load_models()
@@ -552,6 +481,9 @@ for video in videos:
 	frame_rate = round(cap.get(cv2.CAP_PROP_FPS))
 	#output_file = str(total_frames) + "\n" #Total number of frames for evaluate the model
 	
+	#for metrics
+	filename_output = open(video.split("/")[-1] + ".txt", "w+")
+	filename_output.write(str(total_frames) + "\n")
 	#To save a video with frames and rectangles in ROIs
 	width_video = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 	height_video = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) 
@@ -593,47 +525,6 @@ for video in videos:
 				recognizing_signs(rectangle, roi_resize, dimensions, order_rs)
 				order_rs += 1
 		
-		"""
-		#After temporal coherence (10 frames) 
-		temp_dict = {}
-		if frame_number > 10:
-			#create a dict with recognized sign and number of times it appears
-			for l_temp in temp_coherence:
-				for l in l_temp:
-					fn, ds, rs, center, radius = l
-					if rs not in temp_dict:
-						temp_dict[rs] = 0
-					else:
-						temp_dict[rs] += 1
-
-			#Only modifies the third element in list based on others
-			pos = 3
-			l_temp = temp_coherence[pos]
-			cont_rs = set() 
-			for l in l_temp:
-				fn, ds, rs, center, radius = l
-				if rs != None:
-					cont_rs.add(rs)
-			
-			n = 0
-			for l in l_temp:
-				fn, ds, rs, center, radius = l
-				if ds == True and rs == None:
-					#Then choose which sign traffic is
-					#order dict by value 
-					order_dict = sorted(temp_dict.items(), key=lambda kv: kv[1])
-					probably_sign, _ = order_dict.pop()
-					while probably_sign in cont_rs:
-						if len(order_dict) > 0:
-							probably_sign, _ = order_dict.pop()
-						else:
-							break #or continue?
-					temp_coherence[pos][n] = [fn, ds, probably_sign, center, radius ] #find the new value to recognized sign
-				n += 1	
-			
-			#Now save the frame in video
-			save_video()
-		"""
 		save_video()
 		if len(temp_coherence) > 10:
 			temp_coherence.pop(0)
@@ -643,12 +534,6 @@ for video in videos:
 		#print(temp_image)
 		#print("\n")
 
-	
-	"""
-	while len(temp_coherence) > 0:
-		save_video()
-		temp_coherence.pop(0)
-		temp_image.pop(0)
-	"""
 	cap.release() #Release the capture
 	video_out.release() #Release the video writer
+	filename_output.close()
