@@ -6,7 +6,10 @@ Python Version: 3.6
 '''
 
 #python metrics_detection.py -p 2.mov.txt -g 2_gt.txt
-#python metrics_detection.py -p pred_teste -g gt_test
+#python metrics_detection.py -p pred_teste -g gt_teste
+#python metrics_detection.py -p 2_pred.txt -g 2_GT.txt
+#python metrics_detection.py -p 2_pred.txt -g 2_GT
+#python metrics_detection.py -p 2_pred.txt -g 2_GT_wh
 
 import glob
 import argparse
@@ -15,7 +18,6 @@ from sklearn.metrics import classification_report, confusion_matrix
 import itertools
 import numpy as np
 import matplotlib.pyplot as plt
-import argparse
 import os
 
 #Argparse
@@ -31,6 +33,7 @@ filename_PRED, filename_GT = args["predictions"], args["groundtruth"]
 
 predictions = []
 ground_truth = []
+
 
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
@@ -84,6 +87,7 @@ def update_vectors(ground_truth, predictions, frame, frame_PRED, line_PRED, file
 
 	return line_PRED
 
+
 def run_list_PRED(line_PRED, close):
 	def read_PRED(line_PRED):
 		line_PRED = line_PRED.strip()
@@ -102,7 +106,7 @@ def run_list_PRED(line_PRED, close):
 
 	while frame_PRED == frame_PRED_ant and line_PRED:
 		list_PRED.append([frame_PRED, x1_PRED, y1_PRED,
-						x2_PRED, y2_PRED, pred, code_PRED])
+                    x2_PRED, y2_PRED, pred, code_PRED])
 
 		#read line_PRED and save informations
 		line_PRED = file_PRED.readline()
@@ -114,6 +118,7 @@ def run_list_PRED(line_PRED, close):
 	frame_PRED = frame_PRED_ant
 
 	return list_PRED, frame_PRED, close, line_PRED
+
 
 def run_list_GT(line_GT, flag):
 	def read_GT(line_GT):
@@ -140,6 +145,7 @@ def run_list_GT(line_GT, flag):
 
 	return list_GT, frame_GT, flag, line_GT
 
+
 def frame_number(frame_PRED, frame_GT, flag):
 	if frame_PRED >= frame_GT and flag:
 		frame = frame_GT
@@ -147,6 +153,7 @@ def frame_number(frame_PRED, frame_GT, flag):
 		frame = frame_PRED
 
 	return frame
+
 
 #Open GT file
 file_GT = open(filename_GT, "r")
@@ -173,7 +180,7 @@ while not close:
 	if frame_PRED > frame_GT and flag:
 		#run list_GT
 		list_GT, frame_GT, flag, line_GT = run_list_GT(line_GT, flag)
-	
+
 	elif frame_PRED == frame_GT and flag:
 		#Run both lists
 		list_GT, frame_GT, flag, line_GT = run_list_GT(line_GT, flag)
@@ -182,13 +189,13 @@ while not close:
 	else:
 		#run List_PRED
 		list_PRED, frame_PRED, close, line_PRED = run_list_PRED(line_PRED, close)
-	
+
 	#Order list by code_PRED and code_GT
 	list_PRED.sort(key=lambda x: x[6])
 	list_GT.sort(key=lambda x: x[5])
 	frame = frame_number(frame_PRED, frame_GT, flag)
-	print("PRED: {}\nGT: {}\nFrame: {}\n\n ".format(list_PRED,list_GT, frame))
-	
+	print("PRED: {}\nGT: {}\nFrame: {}\n\n ".format(list_PRED, list_GT, frame))
+
 	#Here starts the list predictions and ground_truth
 	if frame == frame_GT:
 		if len(list_GT) < len(list_PRED):
@@ -198,8 +205,16 @@ while not close:
 				frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT = gt
 				ground_truth.append([isTrue, frame])
 				if frame == frame_PRED:
-					frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = list_PRED.pop(0)
-					if code_PRED != 18:
+					frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = list_PRED.pop(
+					    0)
+					x2_PRED = x1_PRED + width_GT
+					y2_PRED = y1_PRED + heigth_GT
+					x2_GT = x1_GT + width_GT
+					y2_GT = y1_GT + heigth_GT
+					#calculate the intersection over union
+					iou = intersection_over_union(
+					    (x1_GT, y1_GT), (x2_GT, y2_GT), (x1_PRED, y1_PRED), (x2_PRED, y2_PRED))
+					if code_PRED != 18 and iou > 0.7:
 						predictions.append([isTrue, frame])
 					else:
 						predictions.append([isFalse, frame])
@@ -210,8 +225,8 @@ while not close:
 				predictions.append([isTrue, frame])
 				ground_truth.append([isFalse,  frame])
 				list_PRED.remove(pred)
-				
-		elif frame == frame_PRED: #and len(PRED) <= len(GT)
+
+		elif frame == frame_PRED:  # and len(PRED) <= len(GT)
 
 			list_aux_PRED = list_PRED.copy()
 			for pred in list_aux_PRED:
@@ -223,15 +238,14 @@ while not close:
 				else:
 					predictions.append([isFalse, frame])
 				ground_truth.append([isTrue, frame])
-				
-				
+
 			list_aux_GT = list_GT.copy()
 			for gt in list_aux_GT:
 				ground_truth.append([isTrue, frame])
 				predictions.append([isFalse, frame])
 				list_GT.remove(gt)
 
-		else: #len(PRED) <= len(GT) and frame != frame_PRED
+		else:  # len(PRED) <= len(GT) and frame != frame_PRED
 			list_aux_PRED = list_PRED.copy()
 			for pred in list_aux_PRED:
 				list_PRED.remove(pred)
@@ -291,8 +305,6 @@ for pred, gt in zip(pred_aux, gt_aux):
 	predictions.append(pred[0])
 	ground_truth.append(gt[0])
 
-#print(len(ground_truth))
-#print(len(predictions))
 
 print("Confusion Matrix for {}".format(filename_GT))
 # Compute confusion matrix
