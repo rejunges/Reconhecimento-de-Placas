@@ -272,11 +272,13 @@ file_GT.close()
 file_PRED.close()
 
 class_names = [isTrue, isFalse]
-
+teste = []
 print("Falso negativo:")
 for pred, gt in zip(predictions, ground_truth):
 	if pred[0] == isFalse and gt[0] == isTrue:
-		print(pred[1])
+		#print(pred[1])
+		teste.append(pred[1])
+"""
 print("\nFalso positivo:")
 for pred, gt in zip(predictions, ground_truth):
 	if pred[0] == isTrue and gt[0] == isFalse:
@@ -289,7 +291,8 @@ print("\nVerdadeiro Negativo")
 for pred, gt in zip(predictions, ground_truth):
 	if pred[0] == isFalse and gt[0] == isFalse:
 		print(pred[1])
-
+"""
+print(teste)
 pred_aux = predictions.copy()
 gt_aux = ground_truth.copy()
 predictions = []

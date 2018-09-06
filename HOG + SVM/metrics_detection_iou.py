@@ -1,13 +1,15 @@
 '''
-File name: metrics_recognition.py
-Description: This file create a confusion matrix based on recognition using prediction and ground truth files.
+File name: metrics_detection.py
+Description: This file create a confusion matrix (detected and not detected) using prediction and ground truth files.
 Author: Renata Zottis Junges
 Python Version: 3.6
 '''
 
-#python metrics_recognition.py -p pred_teste -g gt_teste
-#python metrics_recognition.py -p 2_pred.txt -g 2_GT
-#python metrics_recognition.py -p 2_pred.txt -g 2_GT_wh
+#python metrics_detection_iou.py -p 2.mov.txt -g 2_gt.txt
+#python metrics_detection_iou.py -p pred_teste -g gt_teste
+#python metrics_detection_iou.py -p 2_pred.txt -g 2_GT.txt
+#python metrics_detection_iou.py -p 2_pred.txt -g 2_GT
+#python metrics_detection_iou.py -p 2_pred.txt -g 2_GT_wh
 
 import glob
 import argparse
@@ -53,7 +55,7 @@ def plot_confusion_matrix(cm, classes,
     plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=90)
+    plt.xticks(tick_marks, classes, rotation=45)
     plt.yticks(tick_marks, classes)
 
     fmt = '.2f' if normalize else 'd'
@@ -69,7 +71,6 @@ def plot_confusion_matrix(cm, classes,
     #plt.ylabel('True label')
     #plt.xlabel('Predicted label')
 
-#This function update vectors(ground truth and predictions) when ground_truth is False (<frame or > frame)
 
 
 def run_list_PRED(line_PRED, close):
@@ -138,7 +139,6 @@ def frame_number(frame_PRED, frame_GT, flag):
 
 	return frame
 
-
 def jaccard_index(x1_PRED, y1_PRED, width_GT, heigth_GT):
 	x2_PRED = x1_PRED + width_GT
 	y2_PRED = y1_PRED + heigth_GT
@@ -148,7 +148,6 @@ def jaccard_index(x1_PRED, y1_PRED, width_GT, heigth_GT):
 	iou = intersection_over_union(
 		(x1_GT, y1_GT), (x2_GT, y2_GT), (x1_PRED, y1_PRED), (x2_PRED, y2_PRED))
 	return iou
-
 
 #Open GT file
 file_GT = open(filename_GT, "r")
@@ -160,12 +159,8 @@ total_frames = file_PRED.readline()  # first line is the total number of frames
 total_frames = int(total_frames)
 line_PRED = file_PRED.readline()
 
-code_traffic = {0: "Proib. Ultrapassar", 1: "10 km/h", 2: "20 km/h", 3: "30 km/h", 4: "40 km/h",
-                5: "50 km/h", 6: "60 km/h", 7: "70 km/h", 8: "80 km/h", 9: "90 km/h", 10: "100 km/h", 11: "110 km/h",
-                12: "120 km/h", 13: "Inicio de pista dupla", 14: "Fim de pista dupla", 15: "Passagem obrigatoria",
-                16: "Parada obrigatoria", 17: "Intersecao em circulo", 18: "Erro", 19: "Não reconheceu"}
-
-
+isTrue = "Detectou"
+isFalse = "Nao detectou"
 
 frame_PRED_ant, frame_PRED, frame_GT_ant, frame_GT = 0, 0, 0, 0
 
@@ -205,35 +200,49 @@ while not close:
 				list_aux_GT = list_GT.copy()
 				flagIOU = True
 
-				for gt in list_aux_GT:
+				for gt in list_aux_GT :
 					if flagIOU:
 						frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT = gt
-
+					
 						iou = jaccard_index(x1_PRED, y1_PRED, width_GT, heigth_GT)
 						if code_PRED != 18 and iou > 0.5:
 							list_GT.remove([frame_GT, x1_GT, y1_GT, width_GT, heigth_GT, code_GT])
-							predictions.append([code_PRED, frame])
-							ground_truth.append([code_GT, frame])
+							predictions.append([isTrue, frame])
+							ground_truth.append([isTrue, frame])
 							flagIOU = False
 
 				if flagIOU:
 					#print("{} {} {}".format(frame, code_GT, code_PRED))
-					aux += 1
+					predictions.append([isFalse, frame])
+					ground_truth.append([isTrue, frame])
+					aux += 1		
 
+			for i in range (0, len(list_GT) - aux):
+				ground_truth.append([isTrue, frame])
+				predictions.append([isFalse, frame])
+				
 			list_GT = []
-		else:
+		else:  
 			list_aux_PRED = list_PRED.copy()
 			for pred in list_aux_PRED:
 				list_PRED.remove(pred)
 				frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = pred
 				while list_GT:
 					list_GT.pop()
+					predictions.append([isFalse, frame])
+					ground_truth.append([isTrue, frame])
 
 	elif (frame < frame_GT or frame > frame_GT):
 		list_aux_PRED = list_PRED.copy()
 		for pred in list_aux_PRED:
 			list_PRED.remove(pred)
 			frame_PRED, x1_PRED, y1_PRED, x2_PRED, y2_PRED, pred, code_PRED = pred
+						
+			if code_PRED != 18:
+				predictions.append([isTrue, frame])
+			else:
+				predictions.append([isFalse, frame])
+			ground_truth.append([isFalse, frame])
 
 
 #print("Pred: {}\nGT: {}".format(predictions, ground_truth))
@@ -243,28 +252,34 @@ while not close:
 file_GT.close()
 file_PRED.close()
 
-new_code_traffic = {}
-for code in np.unique(predictions + ground_truth):
-	sign = code_traffic.get(code)
-	if sign != None:
-		new_code_traffic[code] = sign
-
+class_names = [isTrue, isFalse]
+"""
+print("Falso negativo:")
+for pred, gt in zip(predictions, ground_truth):
+	if pred[0] == isFalse and gt[0] == isTrue:
+		print(pred[1])
+		
+print("\nFalso positivo:")
+for pred, gt in zip(predictions, ground_truth):
+	if pred[0] == isTrue and gt[0] == isFalse:
+		print(pred[1])
+print("\nVerdadeiro Positivo")
+for pred, gt in zip(predictions, ground_truth):
+	if pred[0] == isTrue and gt[0] == isTrue:
+		print(pred[1])
+print("\nVerdadeiro Negativo")
+for pred, gt in zip(predictions, ground_truth):
+	if pred[0] == isFalse and gt[0] == isFalse:
+		print(pred[1])
+"""
 pred_aux = predictions.copy()
 gt_aux = ground_truth.copy()
 predictions = []
 ground_truth = []
-
 for pred, gt in zip(pred_aux, gt_aux):
-	predictions.append(code_traffic.get(pred[0]))
-	ground_truth.append(code_traffic.get(gt[0]))
+	predictions.append(pred[0])
+	ground_truth.append(gt[0])
 
-codes_order = sorted(new_code_traffic.keys())
-codes = []
-
-for c in codes_order:
-	codes.append(code_traffic[c])
-
-class_names = codes
 
 print("Confusion Matrix for {}".format(filename_GT))
 # Compute confusion matrix
@@ -284,7 +299,7 @@ plot_confusion_matrix(cnf_matrix, classes=class_names,
 
 #plt.show()
 
-plt.savefig('confusion_matrix_recognition.png', bbox_inches='tight')
+plt.savefig('confusion_matrix_detection.png', bbox_inches='tight')
 
 '''
 print("Classification Report for {}".format(filename_GT))
