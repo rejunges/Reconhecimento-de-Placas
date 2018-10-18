@@ -6,7 +6,8 @@ Python Version: 3.6
 """
 
 #python test.py -t ../../vts/60km/ 
-#python test.py -t ../../sinalizacao_vertical/ 
+#python test.py -t ../../sinalizacao_vertical/ -c 1
+#python test.py -t ../../Videos_RG/
 
 import numpy as np 
 import pickle
@@ -15,13 +16,14 @@ import argparse
 import glob
 import time
 import operator
+import imutils
+import os
+import helpers
+
 from skimage.feature import hog
 from sklearn import svm
 from imutils import paths, contours
-import imutils
-from imutils import contours
-import os
-import helpers
+from scipy.spatial import distance
 
 def add_temp_coherence(detected_sign, recognized_sign, center=None, radius=None, order=None):
 	""" Put new list in temp_coherence list 
@@ -328,7 +330,7 @@ def modified_coherence():
 	length_order = sorted(length_dict.items(), key = lambda kv: kv[1])
 	biggest_length, number = length_order.pop()
 
-	#at least 5 frames have the same length then probably the new frame has too
+	#at least N/2 frames have the same length then probably the new frame has too
 	if number >= 5:
 		last_length = len(temp_coherence[-1])
 		if last_length < biggest_length:
@@ -340,45 +342,52 @@ def modified_coherence():
 			# Now the len(probably_signs) == (biggest_length - last_length)
 			if len(probably_signs) == 1: #only one sign, otherwise need to know the radius
 				fn, ds, rs, c, r, m = traffic_sign_information_coherence(pos, probably_signs[0])
-				temp_coherence[-1].append([fn_last, False, rs, c, r, True])
+				temp_coherence[-1].append([fn_last, True, rs, c, r, True])
 			
-			#else: #TODO: verify radius and probabilities
-		
+			else: #copy the probably_signs
+				while last_length < biggest_length and probably_signs:
+					last_length += 1
+					fn, ds, rs, c, r, m = traffic_sign_information_coherence(
+						pos, probably_signs.pop(0))
+					temp_coherence[-1].append([fn_last, True, rs, c, r, True])
+					
 		elif last_length == biggest_length:
 			#Verifies if it has some None in rs 
-			flag = False
 			position_none = []
 			n = 0
 			for l in temp_coherence[-1]:
 				fn_last, ds, rs, c, r, m = l
 				if rs == None:
-					flag = True
 					position_none.append(n) #position where the rs is None
 				n += 1
 					
-			if flag: #rule 1: detected and not recognized
+			if position_none: #rule 1: detected and not recognized
 				probably_signs, pos = probably_signs_coherence(biggest_length)
+
 				for l in temp_coherence[-1]:
 					fn_last, ds_last, rs, c_last, r_last, m = l
 					if rs in probably_signs:
 						probably_signs.remove(rs)
-			
-				if len(probably_signs) == 1 and len(position_none) == 1:  # only one sign, otherwise need to know the radius
-					fn, ds, rs, c, r, m = traffic_sign_information_coherence(pos, probably_signs[0])
-					pos = position_none[0]
-					temp_coherence[-1][pos] = [fn_last, ds_last, rs, c_last, r_last, True]
 
-	#disconsider the length of frames list
-	#else:
+				for p in position_none:
+					least_distance = []
+					fn_last, ds_last, rs_last, c_last, r_last, m_last = temp_coherence[-1][p]
+					for frame_prob in temp_coherence[pos]: #pos from the probably_signs_coherence function
+						fn, ds, rs, c, r, m = frame_prob
+						if c != None and c_last != None: 
+							least_distance.append([distance.euclidean(c_last, c), rs, c, r])
+					#order least_distance
+					if least_distance:
+						least_distance.sort()
+						dist, rs, c, r = least_distance.pop(0)
+						if ds_last:
+							temp_coherence[-1][p] = [fn_last, ds_last, rs, c_last, r_last, True]
+						else:
+							temp_coherence[-1][p] = [fn_last, True, rs, c, r, True]
+					elif c_last == None and probably_signs:
+						fn, ds, rs, c, r, m = traffic_sign_information_coherence(pos, probably_signs.pop(0))
+						temp_coherence[-1][p] = [fn_last, True, rs, c, r, True]
 
-
-	"""
-	if frame_number == 252:
-		print(length_dict)
-		print(biggest_length)
-		print(number)
-		print(temp_coherence)
-	"""
 
 def save_video():
 	""" This function save the new frame (final frame with annotations) in the new video."""
@@ -400,7 +409,7 @@ def save_video():
 			cv2.putText(final_frame,'Recognized: ' + rs ,(10,valorH), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 			sign_count += 1
 		#only for metrics
-		if  ds == False:
+		if  ds == False and rs == None:
 			filename_output.write(str(frame_number) + ",0,0,0,0,False,18\n") 
 		elif ds == True and rs == None:
 			filename_output.write(str(frame_number) + "," + str(x1_PRED) + "," + str(y1_PRED) +"," + str(x2_PRED)
@@ -447,12 +456,15 @@ ap = argparse.ArgumentParser()
 ap.add_argument('-t', "--testing", required=True, help="path to the testing videos")
 #ap.add_argument('-mf', "--modelFile", required=False, default='HOG_LinearSVC.dat', help='name of model file')
 ap.add_argument('-d', "--dimension", required=False, default=(48,48), help="Dimension of training images (Width, Height)" )
+ap.add_argument('-c', "--coherence", required=False, default=1,
+                help="Size of temporal coherence")
 
 args = vars(ap.parse_args())	#put in args all the arguments from argparse 
 
 #Test class    
 videos = glob.glob(args["testing"] + "*2*.mov")
 dimensions = args["dimension"]
+coherence_size = args["coherence"]
 
 code_traffic = {0: "No overtaking", 1: "10 km/h", 2: "20 km/h", 3: "30 km/h", 4: "40 km/h",
 				5: "50 km/h", 6: "60 km/h", 7: "70 km/h", 8: "80 km/h", 9: "90 km/h", 10: "100 km/h", 11: "110 km/h",
@@ -479,7 +491,6 @@ for video in videos:
 	video_name = video.split("/")[-1].split(".")[0]	#Video name withour extensions
 	total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 	frame_rate = round(cap.get(cv2.CAP_PROP_FPS))
-	#output_file = str(total_frames) + "\n" #Total number of frames for evaluate the model
 	
 	#for metrics
 	filename_output = open(video.split("/")[-1] + ".txt", "w+")
@@ -496,10 +507,9 @@ for video in videos:
 		
 		ret, frame = cap.read()	#capture frame-by-frame
 		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
-		"""
-		if len(temp_coherence) == 10:
-			modified_coherence()
-		"""
+		
+
+		
 		temp_coherence.append([[frame_number, False, None, None, None, False]]) #list of list with six elements: frame_number, detected_sign, recognized_sign, (x,y), radius, modified
 		temp_image.append([frame_number, frame])
 		#DEBUG
@@ -525,11 +535,12 @@ for video in videos:
 				recognizing_signs(rectangle, roi_resize, dimensions, order_rs)
 				order_rs += 1
 		
-		save_video()
-		if len(temp_coherence) > 10:
+		if len(temp_coherence) == 10:
+			modified_coherence()
 			temp_coherence.pop(0)
 			temp_image.pop(0)
-		
+		save_video()
+
 		#print(temp_coherence)
 		#print(temp_image)
 		#print("\n")
