@@ -289,7 +289,9 @@ def predict_traffic_sign(circles, img, model, dimensions, mask = 0):
 
 def modified_coherence():
 	"""This function accomplishes the temporal coherence in the frames list  """
-	
+	if coherence_size <= 1:
+		return 
+
 	def probably_signs_coherence(biggest_length):
 		
 		probably_signs = []
@@ -331,7 +333,8 @@ def modified_coherence():
 	biggest_length, number = length_order.pop()
 
 	#at least N/2 frames have the same length then probably the new frame has too
-	if number >= 5:
+	
+	if number >= int(coherence_size/2):
 		last_length = len(temp_coherence[-1])
 		if last_length < biggest_length:
 			probably_signs, pos = probably_signs_coherence(biggest_length)
@@ -464,7 +467,9 @@ args = vars(ap.parse_args())	#put in args all the arguments from argparse
 #Test class    
 videos = glob.glob(args["testing"] + "*2*.mov")
 dimensions = args["dimension"]
-coherence_size = args["coherence"]
+coherence_size = int(args["coherence"])
+if coherence_size < 1:
+	coherence_size = 1
 
 code_traffic = {0: "No overtaking", 1: "10 km/h", 2: "20 km/h", 3: "30 km/h", 4: "40 km/h",
 				5: "50 km/h", 6: "60 km/h", 7: "70 km/h", 8: "80 km/h", 9: "90 km/h", 10: "100 km/h", 11: "110 km/h",
@@ -535,15 +540,23 @@ for video in videos:
 				recognizing_signs(rectangle, roi_resize, dimensions, order_rs)
 				order_rs += 1
 		
-		if len(temp_coherence) == 10:
-			modified_coherence()
+		if coherence_size == 1:
+			save_video() 
+			#print(temp_coherence)
+			#print("\n")
 			temp_coherence.pop(0)
 			temp_image.pop(0)
-		save_video()
 
-		#print(temp_coherence)
-		#print(temp_image)
-		#print("\n")
+		else:
+			if len(temp_coherence) == coherence_size:
+				modified_coherence()
+				temp_coherence.pop(0)
+				temp_image.pop(0)
+			save_video()
+
+			#print(temp_coherence)
+			#print(temp_image)
+			#print("\n")
 
 	cap.release() #Release the capture
 	video_out.release() #Release the video writer
