@@ -196,7 +196,8 @@ def predict_speed_limit_sign(rect, model, dimensions, order_rs):
 	if len(digits) > 0:
 		add_temp_coherence(True, str(digits) + " km/h", order=order_rs)
 
-def predict_no_overtaking_sign(rect, rect_resize, model, dimensions, order_rs):
+#This function is no overtaking + mandatory way
+def predict_no_overtaking_sign(rect, rect_resize, model, dimensions, order_rs, roi_mask):
 	"""Verify if rect is no overtaking sign
 
 	Args:
@@ -220,14 +221,22 @@ def predict_no_overtaking_sign(rect, rect_resize, model, dimensions, order_rs):
 	pred = model.predict(H.reshape(1,-1))[0]
 	
 	if (pred.title()).lower() == 'pos':
-		add_temp_coherence(True, "No overtaking", order=order_rs)
+		roi_width, roi_height = roi_mask.shape[1], roi_mask.shape[0]
+		height_30percent, width_30percent = int((roi_height*30)/100), int((roi_width*30)/100)
+		roi_mask = roi_mask[height_30percent:roi_height - height_30percent, width_30percent: roi_width - width_30percent].copy() #without borders
+	
+		if np.sum(roi_mask == 255) > 0:
+			add_temp_coherence(True, "Proibido ultrapassar", order=order_rs)
+		else:
+			add_temp_coherence(True, "Passagem obrigatoria", order=order_rs)
+		
 	else:
 		not_no_overtaking = rect
 		
 	return not_no_overtaking
 
 
-def predict_traffic_sign(circles, img, model, dimensions, mask = 0):
+def predict_traffic_sign(circles, img, model, dimensions, mask):
 	"""For each ROI found, verifies if it is or is not traffic sign
 
 	Args:
@@ -235,16 +244,17 @@ def predict_traffic_sign(circles, img, model, dimensions, mask = 0):
 		img (numpy.ndarray): image to cut the ROI 
 		model: traffic sinal model from train.py 
 		dimensions (tuple): width and heigh to resize the ROI image
-		mask (numpy.ndarray): should be used only for debugging
+		mask (numpy.ndarray): mask from hough circle
 
 	Returns:
-		tuple: returns 2 elements. The first one is a list of rectangles (ROIS) which are traffic sign
-		The second one is a list of resized image of ROIs
+		tuple: returns 3 elements. The first one is a list of rectangles (ROIS) which are traffic sign
+		The second one is a list of resized image of ROIs. The third is list of mask ROI (without resizing)
 
 	"""
 
 	rects = []
 	gray = []
+	roi_masks = []
 	for i in circles[0,:]:
 		x, y, radius = helpers.circle_values(i) 
 
@@ -262,9 +272,10 @@ def predict_traffic_sign(circles, img, model, dimensions, mask = 0):
 		
 		#cut image
 		rect = img[y1_PRED:y2_PRED, x1_PRED:x2_PRED].copy()  
-						
+		roi_mask = mask[y1_PRED:y2_PRED, x1_PRED:x2_PRED].copy()
+
 		#For each ROI (rect) resize to dimension and verify if fits in model
-		if rect.shape[0] > 0 and rect.shape[1] > 0: 
+		if rect.shape[0] >= 35 and rect.shape[1] >= 35: #35x35 is the minimum size
 			img_resize = cv2.resize(rect, dimensions).copy()
 		else:
 			continue
@@ -283,8 +294,9 @@ def predict_traffic_sign(circles, img, model, dimensions, mask = 0):
 			#It is a traffic sign
 			rects.append(rect)
 			gray.append(img_gray)
-				
-	return rects, gray
+			roi_masks.append(roi_mask)	
+
+	return rects, gray, roi_masks
 
 
 def modified_coherence():
@@ -406,10 +418,12 @@ def save_video():
 			x1_PRED, y1_PRED, x2_PRED, y2_PRED = helpers.rectangle_coord(center, radius, final_frame.shape)
 			helpers.draw_circle (final_frame, center, radius)
 			cv2.rectangle(final_frame, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED), (0,0,255), 2)
-			cv2.putText(final_frame,'Detected Traffic sign ', (10,150), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+			#cv2.putText(final_frame,'Detected Traffic sign ', (10,150), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+			cv2.putText(final_frame,'Detectou placa de transito', (10,150), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 		if rs != None:
 			valorH += sign_count*100 
-			cv2.putText(final_frame,'Recognized: ' + rs ,(10,valorH), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+			#cv2.putText(final_frame,'Recognized: ' + rs ,(10,valorH), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+			cv2.putText(final_frame,'Reconheceu: ' + rs ,(10,valorH), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
 			sign_count += 1
 		#only for metrics
 		if  ds == False and rs == None:
@@ -424,11 +438,12 @@ def save_video():
 			except:
 				filename_output.write(str(frame_number) + "," + str(x1_PRED) + "," +
                                     str(y1_PRED) + "," + str(x2_PRED) + "," + str(y2_PRED) + "," + "True,18\n")
-	img = cv2.putText(final_frame, 'Frame: ' + str(number), (10,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 4)    
+	#img = cv2.putText(final_frame, 'Frame: ' + str(number), (10,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 4)    
+	img = cv2.putText(final_frame, 'Quadro: ' + str(number), (10,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 4)    
 	video_out.write(img)
 
 
-def recognizing_signs(rect, rect_resize, dimensions, order_rs):
+def recognizing_signs(rect, rect_resize, dimensions, order_rs, roi_mask):
 	"""This method calls others methods to discover which traffic sign was detected
 	
 	Args:
@@ -436,10 +451,10 @@ def recognizing_signs(rect, rect_resize, dimensions, order_rs):
 		rect_resize (numpy.ndarray): ROI resized
 		dimensions (tuple): width and heigh to resize the rect (ROI) image
 		order (int): used to organize the temporal coherence list
-	
+		roi_mask (numpy.ndarray): ROI in mask image
 	"""
 
-	not_no_overtaking = predict_no_overtaking_sign(rectangle, roi_resize, no_overtaking_model, dimensions, order_rs) 		
+	not_no_overtaking = predict_no_overtaking_sign(rectangle, roi_resize, no_overtaking_model, dimensions, order_rs, roi_mask) 		
 
 	if not_no_overtaking != []: #if the ROI is not no overtaking
 		#if it is not no overtaking sign can be a speed limit sign
@@ -471,7 +486,7 @@ coherence_size = int(args["coherence"])
 if coherence_size < 1:
 	coherence_size = 1
 
-code_traffic = {0: "No overtaking", 1: "10 km/h", 2: "20 km/h", 3: "30 km/h", 4: "40 km/h",
+code_traffic = {0: "Proibido ultrapassar", 1: "10 km/h", 2: "20 km/h", 3: "30 km/h", 4: "40 km/h",
 				5: "50 km/h", 6: "60 km/h", 7: "70 km/h", 8: "80 km/h", 9: "90 km/h", 10: "100 km/h", 11: "110 km/h",
 				12: "120 km/h", 13: "Inicio de pista dupla", 14: "Fim de pista dupla", 15: "Passagem obrigatoria",
 				16: "Parada obrigatoria", 17: "Intersecao em circulo", 18: "Erro", 19: "Detectou apenas"}
@@ -524,20 +539,20 @@ for video in videos:
 			frame_clahe = np.hstack((frame, img, maskk))
 			cv2.imwrite("result/"+ str(frame_number) + "-1frame-clahe-mask-" + str(contador) + ".jpg", frame_clahe)
 		"""
-		circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, minDist = 200, param1=50, param2=20, minRadius=5, maxRadius=150)
+		circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, minDist = 50, param1=50, param2=20, minRadius=5, maxRadius=150)
 		
 		#for each circle in a frame, return the rectangle image of a frame original that correspond a traffic sign 		
 		if circles is not None:
 			contador = contador + 1 #DEBUG
 			circles = np.uint16(np.around(circles))
-			rect, rect_resize = predict_traffic_sign(circles, img, traffic_signs_model, dimensions, mask.copy()) #mask.copy for DEBUG
+			rect, rect_resize, roi_masks = predict_traffic_sign(circles, img, traffic_signs_model, dimensions, mask.copy()) #mask.copy for DEBUG
 			
 			list_not_no_overtaking = [] #list of images that is not no overtaking sign
 			
 			order_rs = 0 #used to temp_coherence
 			#For each detected sign try to recognizing the traffic sign 
-			for (rectangle, roi_resize) in zip(rect, rect_resize):
-				recognizing_signs(rectangle, roi_resize, dimensions, order_rs)
+			for (rectangle, roi_resize, roi_mask) in zip(rect, rect_resize, roi_masks):
+				recognizing_signs(rectangle, roi_resize, dimensions, order_rs, roi_mask)
 				order_rs += 1
 		
 		if coherence_size == 1:

@@ -12,7 +12,7 @@ Python Version: 3.6
 import glob
 import argparse
 from helpers import intersection_over_union
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import itertools
 import numpy as np
 import matplotlib.pyplot as plt
@@ -46,7 +46,7 @@ def plot_confusion_matrix(cm, classes,
         print("Normalized confusion matrix")
     else:
         #print('Confusion matrix, without normalization')
-        print("Matriz de confusão (sem normalização)")
+        print("Matriz de confusão")
     print(cm)
 
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
@@ -64,8 +64,10 @@ def plot_confusion_matrix(cm, classes,
                  color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()
-    plt.ylabel("Ground Truth label")
-    plt.xlabel("Predictions label")
+    plt.ylabel("Valor verdadeiro")
+    plt.xlabel("Valor previsto")
+    #plt.ylabel("Ground Truth label")
+    #plt.xlabel("Predictions label")
     #plt.ylabel('True label')
     #plt.xlabel('Predicted label')
 
@@ -276,7 +278,7 @@ np.set_printoptions(precision=2)
 # Plot non-normalized confusion matrix
 plt.figure()
 plot_confusion_matrix(cnf_matrix, classes=class_names,
-                      title='Matriz de confusão (sem normalizacao)')
+                      title='Matriz de confusão')
 
 # Plot normalized confusion matrix
 #plt.figure()
@@ -286,9 +288,9 @@ plot_confusion_matrix(cnf_matrix, classes=class_names,
 
 plt.savefig('confusion_matrix_recognition.png', bbox_inches='tight')
 
-'''
+
 print("Classification Report for {}".format(filename_GT))
 
 print(classification_report(ground_truth, predictions, target_names=class_names))
-print(ground_truth, len(predictions))
-'''
+
+print("Accuracy {0:.2f}".format(accuracy_score(ground_truth, predictions)))
