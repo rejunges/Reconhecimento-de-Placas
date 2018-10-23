@@ -324,7 +324,37 @@ def modified_coherence():
 				return l
 		
 		return []
+
+
+	#To remove detected but does not exist
+	flag_iou = False
+	list_to_remove = []
+	for last in temp_coherence[-1]:
+		fn_last, ds_last, rs_last, c_last, r_last, m_last = last
+		if c_last:
+			x1_last, y1_last, x2_last, y2_last = helpers.rectangle_coord(c_last, r_last, frame.shape)
+			for l_temp in temp_coherence[:-1]:
+				#only computes if it was not modified
+				for l in l_temp:
+					fn, ds, rs, c, r, m = l
+					if m == False and c:			
+						x1, y1, x2, y2 = helpers.rectangle_coord(c, r, frame.shape)
+						#calculate the intersection over union
+						iou = helpers.intersection_over_union((x1_last, y1_last), (x2_last, y2_last), (x1, y1), (x2, y2))
+						if iou > 0:
+							flag_iou = True
+							#continue to improve performance 
+		if not flag_iou and ds_last:
+			list_to_remove.append(last)
+		flag_iou = False
 	
+	for l in list_to_remove:
+		fn, ds, rs, c, r, m = l.copy()
+		if ds == True:
+			temp_coherence[-1].remove(l)
+			temp_coherence[-1].append([fn, False, None, c, r, m])
+
+
 
 	#Discovers length of frames lists
 	length_dict = {}
