@@ -275,7 +275,7 @@ def predict_traffic_sign(circles, img, model, dimensions, mask):
 		roi_mask = mask[y1_PRED:y2_PRED, x1_PRED:x2_PRED].copy()
 
 		#For each ROI (rect) resize to dimension and verify if fits in model
-		if rect.shape[0] >= 35 and rect.shape[1] >= 35: #35x35 is the minimum size
+		if rect.shape[0] >= 37 and rect.shape[1] >= 37: #37x37 is the minimum size
 			img_resize = cv2.resize(rect, dimensions).copy()
 		else:
 			continue
