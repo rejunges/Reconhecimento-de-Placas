@@ -19,6 +19,7 @@ import operator
 import imutils
 import os
 import helpers
+import time
 
 from skimage.feature import hog
 from sklearn import svm
@@ -553,8 +554,10 @@ for video in videos:
 	contador = 0
 	temp_coherence = []
 	temp_image = [] 
+	final_time = 0
 	for frame_number in range(0, total_frames):
 		
+		start_time = time.clock()
 		ret, frame = cap.read()	#capture frame-by-frame
 		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
 		
@@ -599,6 +602,7 @@ for video in videos:
 				temp_image.pop(0)
 			save_video()
 
+		final_time = time.clock() - start_time + final_time
 			#print(temp_coherence)
 			#print(temp_image)
 			#print("\n")
@@ -606,3 +610,5 @@ for video in videos:
 	cap.release() #Release the capture
 	video_out.release() #Release the video writer
 	filename_output.close()
+
+print("Tempo de execução: {} segundos\nTotal de quadros: {}".format(final_time, total_frames))
