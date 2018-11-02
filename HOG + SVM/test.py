@@ -19,6 +19,7 @@ import operator
 import imutils
 import os
 import helpers
+import random
 
 from skimage.feature import hog
 from sklearn import svm
@@ -325,7 +326,7 @@ def modified_coherence():
 		
 		return []
 
-
+	"""
 	#To remove detected but does not exist
 	flag_iou = False
 	list_to_remove = []
@@ -354,7 +355,7 @@ def modified_coherence():
 			temp_coherence[-1].remove(l)
 			temp_coherence[-1].append([fn, False, None, c, r, m])
 
-
+	"""
 
 	#Discovers length of frames lists
 	length_dict = {}
@@ -437,37 +438,41 @@ def modified_coherence():
 def save_video():
 	""" This function save the new frame (final frame with annotations) in the new video."""
 
-	list_frame = temp_coherence[-1]
+	try:
+		list_frame = temp_coherence[-1]
+	except:
+		list_frame = []
 	number, final_frame = temp_image[-1]
 	sign_count = 0
 	valorH = 250
-
+	
 	for i in list_frame:
 		fn, ds, rs, center, radius, modified = i
-		if ds == True:
-			x1_PRED, y1_PRED, x2_PRED, y2_PRED = helpers.rectangle_coord(center, radius, final_frame.shape)
-			helpers.draw_circle (final_frame, center, radius)
-			cv2.rectangle(final_frame, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED), (0,0,255), 2)
-			#cv2.putText(final_frame,'Detected Traffic sign ', (10,150), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
-			cv2.putText(final_frame,'Detectou placa de transito', (10,150), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
-		if rs != None:
-			valorH += sign_count*100 
-			#cv2.putText(final_frame,'Recognized: ' + rs ,(10,valorH), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
-			cv2.putText(final_frame,'Reconheceu: ' + rs ,(10,valorH), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
-			sign_count += 1
-		#only for metrics
-		if  ds == False and rs == None:
-			filename_output.write(str(frame_number) + ",0,0,0,0,False,18\n") 
-		elif ds == True and rs == None:
-			filename_output.write(str(frame_number) + "," + str(x1_PRED) + "," + str(y1_PRED) +"," + str(x2_PRED)
-			 + "," +str(y2_PRED) + "," + "True,19\n")
-		else:
-			try:
-				filename_output.write(str(frame_number) + "," + str(x1_PRED) + "," +
-			                      str(y1_PRED) + "," + str(x2_PRED) + "," + str(y2_PRED) + "," + "True," + str(code_traffic[rs]) + "\n")
-			except:
-				filename_output.write(str(frame_number) + "," + str(x1_PRED) + "," +
-                                    str(y1_PRED) + "," + str(x2_PRED) + "," + str(y2_PRED) + "," + "True,18\n")
+		if frame_number == fn: 
+			if ds == True:
+				x1_PRED, y1_PRED, x2_PRED, y2_PRED = helpers.rectangle_coord(center, radius, final_frame.shape)
+				helpers.draw_circle (final_frame, center, radius)
+				cv2.rectangle(final_frame, (x1_PRED,y1_PRED), (x2_PRED,y2_PRED), (0,0,255), 2)
+				#cv2.putText(final_frame,'Detected Traffic sign ', (10,150), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+				cv2.putText(final_frame,'Detectou placa de transito', (10,150), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+			if rs != None:
+				valorH += sign_count*100 
+				#cv2.putText(final_frame,'Recognized: ' + rs ,(10,valorH), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+				cv2.putText(final_frame,'Reconheceu: ' + rs ,(10,valorH), cv2.FONT_HERSHEY_SIMPLEX, 2,(0,0,255),4)
+				sign_count += 1
+			#only for metrics
+			if  ds == False and rs == None:
+				filename_output.write(str(frame_number) + ",0,0,0,0,False,18\n") 
+			elif ds == True and rs == None:
+				filename_output.write(str(frame_number) + "," + str(x1_PRED) + "," + str(y1_PRED) +"," + str(x2_PRED)
+				+ "," +str(y2_PRED) + "," + "True,19\n")
+			else:
+				try:
+					filename_output.write(str(frame_number) + "," + str(x1_PRED) + "," +
+									str(y1_PRED) + "," + str(x2_PRED) + "," + str(y2_PRED) + "," + "True," + str(code_traffic[rs]) + "\n")
+				except:
+					filename_output.write(str(frame_number) + "," + str(x1_PRED) + "," +
+										str(y1_PRED) + "," + str(x2_PRED) + "," + str(y2_PRED) + "," + "True,18\n")
 	#img = cv2.putText(final_frame, 'Frame: ' + str(number), (10,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 4)    
 	img = cv2.putText(final_frame, 'Quadro: ' + str(number), (10,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 4)    
 	video_out.write(img)
@@ -553,51 +558,57 @@ for video in videos:
 	contador = 0
 	temp_coherence = []
 	temp_image = [] 
+	#for realTime
+	random.seed(9)
+	random_number = random.randint(1, 30)
+	r = 0
 	for frame_number in range(0, total_frames):
-		
+		random_number += r
+		r = 0
 		ret, frame = cap.read()	#capture frame-by-frame
 		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
 		
-
-		
-		temp_coherence.append([[frame_number, False, None, None, None, False]]) #list of list with six elements: frame_number, detected_sign, recognized_sign, (x,y), radius, modified
 		temp_image.append([frame_number, frame])
-		#DEBUG
-		"""
-		if frame_number > 749 and frame_number < 815: #placa de 80km
-			maskk = cv2.cvtColor(mask.copy(), cv2.COLOR_GRAY2BGR)
-			frame_clahe = np.hstack((frame, img, maskk))
-			cv2.imwrite("result/"+ str(frame_number) + "-1frame-clahe-mask-" + str(contador) + ".jpg", frame_clahe)
-		"""
-		circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, minDist = 50, param1=50, param2=20, minRadius=5, maxRadius=150)
-		
-		#for each circle in a frame, return the rectangle image of a frame original that correspond a traffic sign 		
-		if circles is not None:
-			contador = contador + 1 #DEBUG
-			circles = np.uint16(np.around(circles))
-			rect, rect_resize, roi_masks = predict_traffic_sign(circles, img, traffic_signs_model, dimensions, mask.copy()) #mask.copy for DEBUG
+		if random_number == frame_number:
+			r = random.randint(1,30)
+			temp_coherence.append([[frame_number, False, None, None, None, False]]) #list of list with six elements: frame_number, detected_sign, recognized_sign, (x,y), radius, modified
+			#DEBUG
+			"""
+			if frame_number > 749 and frame_number < 815: #placa de 80km
+				maskk = cv2.cvtColor(mask.copy(), cv2.COLOR_GRAY2BGR)
+				frame_clahe = np.hstack((frame, img, maskk))
+				cv2.imwrite("result/"+ str(frame_number) + "-1frame-clahe-mask-" + str(contador) + ".jpg", frame_clahe)
+			"""
+			circles = cv2.HoughCircles(mask, cv2.HOUGH_GRADIENT, 1, minDist = 50, param1=50, param2=20, minRadius=5, maxRadius=150)
 			
-			list_not_no_overtaking = [] #list of images that is not no overtaking sign
-			
-			order_rs = 0 #used to temp_coherence
-			#For each detected sign try to recognizing the traffic sign 
-			for (rectangle, roi_resize, roi_mask) in zip(rect, rect_resize, roi_masks):
-				recognizing_signs(rectangle, roi_resize, dimensions, order_rs, roi_mask)
-				order_rs += 1
+			#for each circle in a frame, return the rectangle image of a frame original that correspond a traffic sign 		
+			if circles is not None:
+				contador = contador + 1 #DEBUG
+				circles = np.uint16(np.around(circles))
+				rect, rect_resize, roi_masks = predict_traffic_sign(circles, img, traffic_signs_model, dimensions, mask.copy()) #mask.copy for DEBUG
+				
+				list_not_no_overtaking = [] #list of images that is not no overtaking sign
+				
+				order_rs = 0 #used to temp_coherence
+				#For each detected sign try to recognizing the traffic sign 
+				for (rectangle, roi_resize, roi_mask) in zip(rect, rect_resize, roi_masks):
+					recognizing_signs(rectangle, roi_resize, dimensions, order_rs, roi_mask)
+					order_rs += 1
 		
 		if coherence_size == 1:
 			save_video() 
 			#print(temp_coherence)
 			#print("\n")
-			temp_coherence.pop(0)
+			if random_number == frame_number:
+				temp_coherence.pop(0)
 			temp_image.pop(0)
 
 		else:
 			if len(temp_coherence) == coherence_size:
 				modified_coherence()
 				temp_coherence.pop(0)
-				temp_image.pop(0)
 			save_video()
+			temp_image.pop(0)
 
 			#print(temp_coherence)
 			#print(temp_image)
