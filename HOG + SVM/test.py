@@ -562,14 +562,16 @@ for video in videos:
 	random.seed(9)
 	random_number = random.randint(1, 30)
 	r = 0
+	final_time = 0
 	for frame_number in range(0, total_frames):
 		random_number += r
 		r = 0
+		start_time = time.clock()
 		ret, frame = cap.read()	#capture frame-by-frame
-		mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
 		
 		temp_image.append([frame_number, frame])
 		if random_number == frame_number:
+			mask, img = preprocessing_frame(frame) #create a mask to HoughCircle
 			r = random.randint(1,30)
 			temp_coherence.append([[frame_number, False, None, None, None, False]]) #list of list with six elements: frame_number, detected_sign, recognized_sign, (x,y), radius, modified
 			#DEBUG
@@ -594,7 +596,6 @@ for video in videos:
 				for (rectangle, roi_resize, roi_mask) in zip(rect, rect_resize, roi_masks):
 					recognizing_signs(rectangle, roi_resize, dimensions, order_rs, roi_mask)
 					order_rs += 1
-		
 		if coherence_size == 1:
 			save_video() 
 			#print(temp_coherence)
@@ -610,6 +611,7 @@ for video in videos:
 			save_video()
 			temp_image.pop(0)
 
+		final_time = time.clock() - start_time + final_time
 			#print(temp_coherence)
 			#print(temp_image)
 			#print("\n")
@@ -617,3 +619,6 @@ for video in videos:
 	cap.release() #Release the capture
 	video_out.release() #Release the video writer
 	filename_output.close()
+
+print("Tempo de execução: {} segundos\nTotal de quadros: {}".format(
+	final_time, total_frames))
