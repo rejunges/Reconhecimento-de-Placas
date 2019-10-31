@@ -1,10 +1,10 @@
-# Reconhecimento de Placas de Trânsito
+# Reconhecimento de Placas de Trânsito**
 
 Este repositório foi criado para o desenvolvimento do meu TCC na UFPel no curso de Ciência da Computação.
 
 ### Objetivo
 O objetivo do software desenvolvido é detectar, em vídeos, as placas de trânsito da legislação brasileira que possuam formato circular com bordas vermelhas
-e fazer o reconhecimento das placas de *proibido ultrapassar, passagem obrigatória e placas de velocidade* (indicando o valor do limite de velocidade para cada uma).
+e fazer o reconhecimento das placas de **proibido ultrapassar**, **passagem obrigatória** e **placas de velocidade** (indicando o valor do limite de velocidade para cada uma).
 
 ### Implementação
 Para a implementação foi utilizado diversas técnicas de processamento digital de imagens e aprendizado de máquina. O código foi desenvolvivo na linguagem Python 3.x
